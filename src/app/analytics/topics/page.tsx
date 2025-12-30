@@ -7,17 +7,25 @@ import { AreaLineChart } from '@/components/charts/line-chart';
 import { BarChartComponent } from '@/components/charts/bar-chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, Sparkles, Calendar, AlertTriangle } from 'lucide-react';
+import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
+import type { Site } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
 
-async function TopicsContent() {
+interface SearchParams {
+  site?: string;
+}
+
+async function TopicsContent({ site }: { readonly site: SiteFilter }) {
+  const siteParam: Site | undefined = site === 'all' ? undefined : site;
+  
   let topicEvolution, topicSpikes, topicSentiment;
   
   try {
     [topicEvolution, topicSpikes, topicSentiment] = await Promise.all([
-      topicsAPI.getEvolution({ limit: 8 }),
-      topicsAPI.getSpikes({ weeks: 4 }),
-      topicsAPI.getSentimentDistribution({ limit: 12 }),
+      topicsAPI.getEvolution({ limit: 8, site: siteParam }),
+      topicsAPI.getSpikes({ weeks: 4, site: siteParam }),
+      topicsAPI.getSentimentDistribution({ limit: 12, site: siteParam }),
     ]);
   } catch (error) {
     console.error('Error fetching topics data:', error);
@@ -222,18 +230,28 @@ async function TopicsContent() {
   );
 }
 
-export default function TopicsPage() {
+interface TopicsPageProps {
+  readonly searchParams: Promise<SearchParams>;
+}
+
+export default async function TopicsPage({ searchParams }: TopicsPageProps) {
+  const params = await searchParams;
+  const site = (params.site as SiteFilter) || 'all';
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Topics Analytics</h1>
-        <p className="text-muted-foreground mt-1">
-          Track topic evolution, spikes, and sentiment over time
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Topics Analytics</h1>
+          <p className="text-muted-foreground mt-1">
+            Track topic evolution, spikes, and sentiment over time
+          </p>
+        </div>
+        <SiteSelector />
       </div>
 
       <Suspense fallback={<TopicsSkeleton />}>
-        <TopicsContent />
+        <TopicsContent site={site} />
       </Suspense>
     </div>
   );

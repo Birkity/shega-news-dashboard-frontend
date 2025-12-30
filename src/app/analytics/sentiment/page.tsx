@@ -5,20 +5,27 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AreaChartComponent } from '@/components/charts/area-chart';
 import { BarChartComponent } from '@/components/charts/bar-chart';
-import { DonutChart } from '@/components/charts/donut-chart';
-import { MessageSquare, TrendingUp, TrendingDown, Smile, Frown, Meh } from 'lucide-react';
+import { MessageSquare, TrendingUp, Smile, Frown } from 'lucide-react';
+import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
+import type { Site } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
 
-async function SentimentContent() {
+interface SearchParams {
+  site?: string;
+}
+
+async function SentimentContent({ site }: { readonly site: SiteFilter }) {
+  const siteParam: Site | undefined = site === 'all' ? undefined : site;
+  
   let timeline, sentimentBySite, topPositive, topNegative;
   
   try {
     [timeline, sentimentBySite, topPositive, topNegative] = await Promise.all([
-      sentimentAPI.getTimeline({ months: 12 }),
+      sentimentAPI.getTimeline({ months: 12, site: siteParam }),
       nlpAPI.getSentimentBySite(),
-      sentimentAPI.getTopPositive({ limit: 5 }),
-      sentimentAPI.getTopNegative({ limit: 5 }),
+      sentimentAPI.getTopPositive({ limit: 5, site: siteParam }),
+      sentimentAPI.getTopNegative({ limit: 5, site: siteParam }),
     ]);
   } catch (error) {
     console.error('Error fetching sentiment data:', error);
@@ -135,7 +142,7 @@ async function SentimentContent() {
               ]}
               xAxisKey="month"
               height={300}
-              formatTooltip={(value) => `${(value * 100).toFixed(1)}%`}
+              tooltipFormat="percent"
             />
           </CardContent>
         </Card>
@@ -248,18 +255,28 @@ async function SentimentContent() {
   );
 }
 
-export default function SentimentPage() {
+interface SentimentPageProps {
+  readonly searchParams: Promise<SearchParams>;
+}
+
+export default async function SentimentPage({ searchParams }: SentimentPageProps) {
+  const params = await searchParams;
+  const site = (params.site as SiteFilter) || 'all';
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Sentiment Analytics</h1>
-        <p className="text-muted-foreground mt-1">
-          Analysis of article sentiment polarity and subjectivity
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Sentiment Analytics</h1>
+          <p className="text-muted-foreground mt-1">
+            Analysis of article sentiment polarity and subjectivity
+          </p>
+        </div>
+        <SiteSelector />
       </div>
 
       <Suspense fallback={<SentimentSkeleton />}>
-        <SentimentContent />
+        <SentimentContent site={site} />
       </Suspense>
     </div>
   );

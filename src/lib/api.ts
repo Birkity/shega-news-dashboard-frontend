@@ -28,7 +28,7 @@ async function fetchAPI<T>(
 }
 
 // Build query string from params
-function buildQuery(params: Record<string, string | number | undefined | null>): string {
+function buildQuery(params: Record<string, string | number | boolean | undefined | null>): string {
   const filtered = Object.entries(params)
     .filter(([, value]) => value !== undefined && value !== null)
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
@@ -53,9 +53,9 @@ export const dashboardAPI = {
   getOverview: () => 
     fetchAPI<API.OverviewResponse>(endpoints.overview),
 
-  getDailyArticles: (days: number = 30) => 
+  getDailyArticles: (days: number = 30, site?: API.Site) => 
     fetchAPI<API.DailyArticle[]>(
-      `${endpoints.dailyArticles}${buildQuery({ days })}`,
+      `${endpoints.dailyArticles}${buildQuery({ days, site })}`,
       {},
       config.shortRevalidate
     ),
@@ -124,6 +124,26 @@ export const authorsAPI = {
     fetchAPI<API.AuthorSentiment[]>(
       `${endpoints.authorsSentiment}${buildQuery(params)}`
     ),
+
+  getProductivity: (author: string, params: {
+    days?: number;
+    granularity?: 'day' | 'week' | 'month';
+  } = {}) => 
+    fetchAPI<API.AuthorProductivity>(
+      `${endpoints.authorProductivity(author)}${buildQuery(params)}`,
+      {},
+      config.shortRevalidate
+    ),
+
+  getKeywords: (author: string, params: {
+    limit?: number;
+    include_nlp?: boolean;
+  } = {}) => 
+    fetchAPI<API.AuthorKeywords>(
+      `${endpoints.authorKeywords(author)}${buildQuery(params)}`,
+      {},
+      config.shortRevalidate
+    ),
 };
 
 // ============= Categories API =============
@@ -144,6 +164,16 @@ export const keywordsAPI = {
   getExtracted: (params: { limit?: number; site?: API.Site } = {}) => 
     fetchAPI<API.TopKeyword[]>(
       `${endpoints.nlpExtractedKeywords}${buildQuery(params)}`
+    ),
+
+  getHeadline: (params: { limit?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.HeadlineKeywordsResponse>(
+      `${endpoints.headlineKeywords}${buildQuery(params)}`
+    ),
+
+  getBody: (params: { limit?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.BodyKeywordsResponse>(
+      `${endpoints.bodyKeywords}${buildQuery(params)}`
     ),
 };
 

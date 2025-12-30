@@ -136,6 +136,58 @@ export interface AuthorSentiment {
   polarity_range: { min: number; max: number };
 }
 
+// Author Productivity (Timeline)
+export interface AuthorProductivityTimelineItem {
+  date: string;
+  total: number;
+  shega: number;
+  addis_insight: number;
+  avg_word_count: number;
+}
+
+export interface AuthorProductivity {
+  author: string;
+  period: {
+    start: string;
+    end: string;
+    days: number;
+    granularity: 'day' | 'week' | 'month';
+  };
+  summary: {
+    total_articles: number;
+    active_periods: number;
+    avg_per_period: number;
+    max_in_period: number;
+    min_in_period: number;
+  };
+  timeline: AuthorProductivityTimelineItem[];
+}
+
+// Author Keywords
+export interface AuthorKeywordItem {
+  keyword: string;
+  count: number;
+}
+
+export interface AuthorNlpKeywordItem {
+  keyword: string;
+  count: number;
+  avg_relevance_score: number;
+}
+
+export interface AuthorKeywords {
+  author: string;
+  stats: {
+    total_articles: number;
+    sites: string[];
+    avg_keywords_per_article: number;
+  };
+  meta_keywords: AuthorKeywordItem[];
+  nlp_keywords: AuthorNlpKeywordItem[] | null;
+  total_unique_meta_keywords: number;
+  total_unique_nlp_keywords: number | null;
+}
+
 // Categories
 export interface CategoryDistribution {
   category: string;
@@ -148,6 +200,78 @@ export interface CategoryDistribution {
 export interface TopKeyword {
   keyword: string;
   count: number;
+}
+
+export interface HeadlineKeyword {
+  keyword: string;
+  count: number;
+}
+
+export interface BodyKeyword {
+  keyword: string;
+  count: number;
+  tfidf_score: number;
+}
+
+export interface HeadlineKeywordsResponse {
+  keywords: {
+    all: HeadlineKeyword[];
+    shega: HeadlineKeyword[];
+    addis_insight: HeadlineKeyword[];
+  };
+  stats: {
+    total_articles_analyzed: number;
+    unique_headline_words: {
+      all: number;
+      shega: number;
+      addis_insight: number;
+    };
+    by_site: Record<string, { total_articles: number }>;
+  };
+  comparison: {
+    shared_keywords: string[];
+    shega_unique: string[];
+    addis_insight_unique: string[];
+    overlap_percentage: number;
+  };
+  visualization_config: {
+    recommended_chart: string;
+    color_scheme: Record<string, string>;
+    size_scaling: string;
+    tooltip_fields: string[];
+  };
+}
+
+export interface BodyKeywordsResponse {
+  keywords: {
+    all: BodyKeyword[];
+    shega: BodyKeyword[];
+    addis_insight: BodyKeyword[];
+  };
+  stats: {
+    total_articles_analyzed: number;
+    unique_body_keywords: {
+      all: number;
+      shega: number;
+      addis_insight: number;
+    };
+    by_site: Record<string, {
+      articles_with_keywords: number;
+      avg_keywords_per_article: number;
+    }>;
+  };
+  comparison: {
+    shared_keywords: string[];
+    shega_unique: string[];
+    addis_insight_unique: string[];
+    overlap_percentage: number;
+  };
+  visualization_config: {
+    recommended_chart: string;
+    color_scheme: Record<string, string>;
+    size_scaling: string;
+    tooltip_fields: string[];
+  };
 }
 
 // Topics

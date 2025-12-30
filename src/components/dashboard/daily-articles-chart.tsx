@@ -6,15 +6,24 @@ import { AreaChartComponent } from '@/components/charts/area-chart';
 import type { DailyArticle } from '@/types/api';
 
 interface DailyArticlesChartProps {
-  data: DailyArticle[];
+  readonly data: DailyArticle[];
+  readonly site?: 'shega' | 'addis_insight';
 }
 
-export function DailyArticlesChart({ data }: DailyArticlesChartProps) {
+function getSiteCount(item: DailyArticle, site?: 'shega' | 'addis_insight'): number {
+  if (site === 'shega') return item.shega;
+  if (site === 'addis_insight') return item.addis_insight;
+  return item.shega + item.addis_insight;
+}
+
+export function DailyArticlesChart({ data, site }: DailyArticlesChartProps) {
   // Format the data for the chart
   const chartData = data.map((item) => ({
     date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     shega: item.shega,
     addis_insight: item.addis_insight,
+    // For single site view, just show the selected site's data
+    count: getSiteCount(item, site),
   }));
 
   const formatDate = (value: string) => value;
@@ -35,6 +44,34 @@ export function DailyArticlesChart({ data }: DailyArticlesChartProps) {
     );
   }
 
+  // Single site view
+  if (site) {
+    const color = site === 'shega' ? '#2563eb' : '#16a34a';
+    const name = site === 'shega' ? 'Shega' : 'Addis Insight';
+    
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">Daily Publishing Trends</CardTitle>
+          <CardDescription>Article count per day for {name}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AreaChartComponent
+            data={chartData}
+            areas={[
+              { dataKey: site, color, name },
+            ]}
+            xAxisKey="date"
+            height={300}
+            formatXAxis={formatDate}
+            gradient
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Comparison view (both sites)
   return (
     <Card>
       <CardHeader>
@@ -46,7 +83,7 @@ export function DailyArticlesChart({ data }: DailyArticlesChartProps) {
           data={chartData}
           areas={[
             { dataKey: 'shega', color: '#2563eb', name: 'Shega' },
-            { dataKey: 'addis_insight', color: '#dc2626', name: 'Addis Insight' },
+            { dataKey: 'addis_insight', color: '#16a34a', name: 'Addis Insight' },
           ]}
           xAxisKey="date"
           height={300}

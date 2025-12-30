@@ -31,12 +31,16 @@ export const endpoints = {
   topAuthors: '/analytics/authors/top',
   topAuthorsWithStats: '/analytics/authors/top-with-stats',
   authorsSentiment: '/analytics/authors/sentiment',
+  authorProductivity: (author: string) => `/analytics/authors/${encodeURIComponent(author)}/productivity`,
+  authorKeywords: (author: string) => `/analytics/authors/${encodeURIComponent(author)}/keywords`,
 
   // Categories
   categoriesDistribution: '/analytics/categories/distribution',
 
   // Keywords
   topKeywords: '/analytics/keywords/top',
+  headlineKeywords: '/analytics/keywords/headlines',
+  bodyKeywords: '/analytics/keywords/body',
 
   // Topics
   topicsEvolution: '/analytics/topics/evolution',

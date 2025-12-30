@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import type { SentimentBySite } from '@/types/api';
 
 interface SentimentOverviewProps {
-  data: SentimentBySite | null;
+  readonly data: SentimentBySite | null;
+  readonly highlightSite?: 'shega' | 'addis_insight';
 }
 
 const SENTIMENT_COLORS = {
@@ -17,7 +18,7 @@ const SENTIMENT_COLORS = {
   negative: '#ef4444',
 };
 
-export function SentimentOverview({ data }: SentimentOverviewProps) {
+export function SentimentOverview({ data, highlightSite }: SentimentOverviewProps) {
   if (!data) {
     return (
       <Card className="h-full">
@@ -46,6 +47,43 @@ export function SentimentOverview({ data }: SentimentOverviewProps) {
     { name: 'Negative', value: data.addis_insight.negative, color: SENTIMENT_COLORS.negative },
   ];
 
+  // Single site view
+  if (highlightSite) {
+    const siteData = highlightSite === 'shega' ? shegaData : addisData;
+    const siteSentiment = highlightSite === 'shega' ? data.shega : data.addis_insight;
+    const siteName = highlightSite === 'shega' ? 'Shega' : 'Addis Insight';
+
+    return (
+      <Card className="h-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Sentiment Analysis</CardTitle>
+          <CardDescription>{siteName} sentiment distribution</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DonutChart
+            data={siteData}
+            height={220}
+            innerRadius={50}
+            outerRadius={80}
+            showLegend={false}
+          />
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+              {siteSentiment.positive_pct.toFixed(1)}% Positive
+            </Badge>
+            <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
+              {siteSentiment.neutral_pct.toFixed(1)}% Neutral
+            </Badge>
+            <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100">
+              {siteSentiment.negative_pct.toFixed(1)}% Negative
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Comparison view (both sites with tabs)
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">

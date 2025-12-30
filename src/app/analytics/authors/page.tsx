@@ -4,19 +4,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChartComponent } from '@/components/charts/bar-chart';
-import { DonutChart } from '@/components/charts/donut-chart';
-import { User, TrendingUp, FileText } from 'lucide-react';
+import { User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
+import { AuthorAnalyticsClient } from '@/components/analytics/author-analytics-client';
+import type { Site } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
 
-async function AuthorsContent() {
+interface SearchParams {
+  site?: string;
+  author?: string;
+}
+
+async function AuthorsContent({ site, selectedAuthor }: { readonly site: SiteFilter; readonly selectedAuthor?: string }) {
+  const siteParam: Site | undefined = site === 'all' ? undefined : site;
+  
   let topAuthors, authorsWithStats;
   
   try {
     [topAuthors, authorsWithStats] = await Promise.all([
-      authorsAPI.getTop({ limit: 20 }),
-      authorsAPI.getTopWithStats({ limit: 10 }),
+      authorsAPI.getTop({ limit: 10, site: siteParam }),
+      authorsAPI.getTopWithStats({ limit: 50, site: siteParam }),
     ]);
   } catch (error) {
     console.error('Error fetching authors:', error);
@@ -29,9 +38,20 @@ async function AuthorsContent() {
 
   const chartData = topAuthors.slice(0, 10).map((author) => ({
     author: author.author.length > 15 ? `${author.author.slice(0, 15)}...` : author.author,
+    fullName: author.author,
     articles: author.article_count,
     avgWords: Math.round(author.avg_word_count),
   }));
+
+  function getSiteDescription(): string {
+    if (site === 'shega') {
+      return 'Top authors from Shega';
+    }
+    if (site === 'addis_insight') {
+      return 'Top authors from Addis Insight';
+    }
+    return 'Most prolific writers across both sites';
+  }
 
   const getSentimentColor = (polarity: number) => {
     if (polarity > 0.1) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
@@ -48,7 +68,7 @@ async function AuthorsContent() {
             <User className="h-5 w-5" />
             Top 10 Authors by Article Count
           </CardTitle>
-          <CardDescription>Most prolific writers across both sites</CardDescription>
+          <CardDescription>{getSiteDescription()}</CardDescription>
         </CardHeader>
         <CardContent>
           <BarChartComponent
@@ -61,49 +81,53 @@ async function AuthorsContent() {
         </CardContent>
       </Card>
 
-      {/* Authors with Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {authorsWithStats.map((author, index) => (
+      {/* Author Selection and Analytics */}
+      <AuthorAnalyticsClient 
+        authors={authorsWithStats} 
+        selectedAuthor={selectedAuthor}
+        site={site}
+      />
+
+      {/* Authors Stats Summary */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {authorsWithStats.slice(0, 5).map((author, index) => (
           <Card key={`${author.author}-${author.site}`} className="relative overflow-hidden">
             <div className={cn(
               'absolute left-0 top-0 h-full w-1',
-              author.site === 'shega' ? 'bg-blue-500' : 'bg-red-500'
+              author.site === 'shega' ? 'bg-blue-500' : 'bg-green-500'
             )} />
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-base">{author.author}</CardTitle>
-                  <CardDescription className="capitalize">
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="text-sm truncate">{author.author}</CardTitle>
+                  <CardDescription className="text-xs capitalize">
                     {author.site === 'addis_insight' ? 'Addis Insight' : 'Shega'}
                   </CardDescription>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary shrink-0">
                   #{index + 1}
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <p className="text-muted-foreground">Articles</p>
-                  <p className="text-xl font-bold">{author.article_count}</p>
+                  <p className="text-lg font-bold">{author.article_count}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Avg Words</p>
-                  <p className="text-xl font-bold">{Math.round(author.avg_word_count)}</p>
+                  <p className="text-lg font-bold">{Math.round(author.avg_word_count)}</p>
                 </div>
               </div>
               
-              <div className="mt-4">
-                <p className="text-sm text-muted-foreground mb-2">Sentiment Breakdown</p>
-                <div className="flex gap-2">
-                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                    {author.sentiment_breakdown.positive_pct.toFixed(0)}% Positive
-                  </Badge>
-                  <Badge className={getSentimentColor(author.avg_polarity)}>
-                    {author.avg_polarity > 0 ? '+' : ''}{(author.avg_polarity * 100).toFixed(0)}% Polarity
-                  </Badge>
-                </div>
+              <div className="mt-3 flex flex-wrap gap-1">
+                <Badge className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                  {author.sentiment_breakdown.positive_pct.toFixed(0)}%+
+                </Badge>
+                <Badge className={cn('text-xs', getSentimentColor(author.avg_polarity))}>
+                  {author.avg_polarity > 0 ? '+' : ''}{(author.avg_polarity * 100).toFixed(0)}%
+                </Badge>
               </div>
             </CardContent>
           </Card>
@@ -113,18 +137,29 @@ async function AuthorsContent() {
   );
 }
 
-export default function AuthorsPage() {
+interface AuthorsPageProps {
+  readonly searchParams: Promise<SearchParams>;
+}
+
+export default async function AuthorsPage({ searchParams }: AuthorsPageProps) {
+  const params = await searchParams;
+  const site = (params.site as SiteFilter) || 'all';
+  const selectedAuthor = params.author;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Authors Analytics</h1>
-        <p className="text-muted-foreground mt-1">
-          Analysis of author productivity and writing patterns
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Authors Analytics</h1>
+          <p className="text-muted-foreground mt-1">
+            Analysis of author productivity, writing patterns, and keywords
+          </p>
+        </div>
+        <SiteSelector />
       </div>
 
       <Suspense fallback={<AuthorsSkeleton />}>
-        <AuthorsContent />
+        <AuthorsContent site={site} selectedAuthor={selectedAuthor} />
       </Suspense>
     </div>
   );
@@ -142,18 +177,27 @@ function AuthorsSkeleton() {
           <Skeleton className="h-[400px] w-full" />
         </CardContent>
       </Card>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i}>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-48" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[500px] w-full" />
+          </CardContent>
+        </Card>
+        <div className="space-y-6">
+          <Card>
             <CardHeader>
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-56" />
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-[300px] w-full" />
             </CardContent>
           </Card>
-        ))}
+        </div>
       </div>
     </div>
   );

@@ -1,22 +1,140 @@
 import { Suspense } from 'react';
-import { keywordsAPI, topicsAPI } from '@/lib/api';
+import { keywordsAPI } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BarChartComponent } from '@/components/charts/bar-chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Tags, Hash, Sparkles } from 'lucide-react';
+import { Heading1, FileText, Tags, Sparkles } from 'lucide-react';
+import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
 
 export const dynamic = 'force-dynamic';
 
-async function KeywordsContent() {
-  let topKeywords, extractedKeywords, topicSentiment;
+interface SearchParams {
+  site?: string;
+}
+
+// Color palettes for word clouds
+const COLOR_PALETTES = {
+  headline: [
+    'bg-blue-600', 'bg-blue-500', 'bg-blue-400', 
+    'bg-sky-600', 'bg-sky-500', 'bg-cyan-500'
+  ],
+  body: [
+    'bg-violet-600', 'bg-violet-500', 'bg-purple-500', 
+    'bg-fuchsia-500', 'bg-pink-500', 'bg-purple-400'
+  ],
+  meta: [
+    'bg-emerald-600', 'bg-emerald-500', 'bg-teal-500', 
+    'bg-green-500', 'bg-teal-400', 'bg-emerald-400'
+  ],
+  tfidf: [
+    'bg-orange-600', 'bg-orange-500', 'bg-amber-500', 
+    'bg-yellow-500', 'bg-orange-400', 'bg-amber-400'
+  ],
+};
+
+// Word Cloud Component with better styling
+function WordCloud({ 
+  words, 
+  palette = 'headline',
+  emptyMessage = 'No keywords available for this selection',
+}: { 
+  readonly words: { keyword: string; count: number; tfidf_score?: number }[];
+  readonly palette?: keyof typeof COLOR_PALETTES;
+  readonly emptyMessage?: string;
+}) {
+  if (words.length === 0) {
+    return (
+      <div className="flex h-[350px] items-center justify-center text-muted-foreground text-center px-4">
+        {emptyMessage}
+      </div>
+    );
+  }
+
+  const colors = COLOR_PALETTES[palette];
+  const maxCount = Math.max(...words.map(w => w.count));
+  const minCount = Math.min(...words.map(w => w.count));
+  const range = maxCount - minCount || 1;
+
+  // Get varied rotation and position for organic look
+  const getStyle = (count: number, index: number) => {
+    const normalized = (count - minCount) / range;
+    // Size range from 0.85rem to 2.2rem
+    const fontSize = 0.85 + normalized * 1.35;
+    
+    // Subtle random rotation (-5 to 5 degrees)
+    const seed = index * 137.508;
+    const rotation = Math.sin(seed) * 5;
+    
+    // Varied vertical alignment
+    const verticalOffset = Math.cos(seed * 2) * 6;
+    
+    return {
+      fontSize: `${fontSize}rem`,
+      transform: `rotate(${rotation}deg)`,
+      marginTop: `${verticalOffset}px`,
+    };
+  };
+
+  // Get color based on count ranking
+  const getColor = (index: number) => {
+    const colorIndex = index % colors.length;
+    return colors[colorIndex];
+  };
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 p-8 min-h-[350px]">
+      {words.map((word, index) => {
+        const style = getStyle(word.count, index);
+        const colorClass = getColor(index);
+        const tooltip = word.tfidf_score 
+          ? `${word.keyword}: ${word.count} occurrences (TF-IDF: ${word.tfidf_score.toFixed(4)})`
+          : `${word.keyword}: ${word.count} occurrences`;
+        
+        return (
+          <span
+            key={word.keyword}
+            className={`inline-block rounded-full px-4 py-1.5 text-white font-semibold 
+              transition-all duration-200 hover:scale-110 hover:shadow-lg cursor-default
+              ${colorClass}`}
+            style={style}
+            title={tooltip}
+          >
+            {word.keyword}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+// Stats display component
+function KeywordStats({ 
+  label, 
+  value, 
+  subtext 
+}: { 
+  readonly label: string; 
+  readonly value: string | number; 
+  readonly subtext?: string; 
+}) {
+  return (
+    <div className="text-center p-4 rounded-lg bg-muted/50">
+      <p className="text-2xl font-bold">{value}</p>
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      {subtext && <p className="text-xs text-muted-foreground mt-1">{subtext}</p>}
+    </div>
+  );
+}
+
+async function KeywordsContent({ site }: { readonly site: SiteFilter }) {
+  let headlineData, bodyData, topKeywords, extractedKeywords;
   
   try {
-    [topKeywords, extractedKeywords, topicSentiment] = await Promise.all([
-      keywordsAPI.getTop({ limit: 20 }),
-      keywordsAPI.getExtracted({ limit: 20 }),
-      topicsAPI.getSentimentDistribution({ limit: 15 }),
+    [headlineData, bodyData, topKeywords, extractedKeywords] = await Promise.all([
+      keywordsAPI.getHeadline({ limit: 50 }),
+      keywordsAPI.getBody({ limit: 50 }),
+      keywordsAPI.getTop({ limit: 50, site: site === 'all' ? undefined : site }),
+      keywordsAPI.getExtracted({ limit: 50, site: site === 'all' ? undefined : site }),
     ]);
   } catch (error) {
     console.error('Error fetching keywords data:', error);
@@ -27,140 +145,242 @@ async function KeywordsContent() {
     );
   }
 
-  const metaKeywordsData = topKeywords.slice(0, 15).map((kw) => ({
-    keyword: kw.keyword.length > 20 ? `${kw.keyword.slice(0, 20)}...` : kw.keyword,
+  // Get the right keyword set based on site selection
+  const getHeadlineKeywords = () => {
+    if (site === 'all') return headlineData.keywords.all;
+    if (site === 'shega') return headlineData.keywords.shega;
+    return headlineData.keywords.addis_insight;
+  };
+
+  const getBodyKeywords = () => {
+    if (site === 'all') return bodyData.keywords.all;
+    if (site === 'shega') return bodyData.keywords.shega;
+    return bodyData.keywords.addis_insight;
+  };
+
+  const headlineKeywords = getHeadlineKeywords();
+  const bodyKeywords = getBodyKeywords();
+
+  const metaKeywordsData = topKeywords.map((kw) => ({
+    keyword: kw.keyword,
     count: kw.count,
   }));
 
-  const extractedData = extractedKeywords.slice(0, 15).map((kw) => ({
-    keyword: kw.keyword.length > 20 ? `${kw.keyword.slice(0, 20)}...` : kw.keyword,
+  const tfidfKeywordsData = extractedKeywords.map((kw) => ({
+    keyword: kw.keyword,
     count: kw.count,
   }));
 
-  const sentimentData = topicSentiment.map((topic) => ({
-    keyword: topic.keyword.length > 15 ? `${topic.keyword.slice(0, 15)}...` : topic.keyword,
-    positive: topic.positive,
-    neutral: topic.neutral,
-    negative: topic.negative,
-  }));
+  // Get stats for current site
+  const getHeadlineStats = () => {
+    const stats = headlineData.stats;
+    if (site === 'all') {
+      return {
+        articles: stats.total_articles_analyzed,
+        uniqueWords: stats.unique_headline_words.all,
+      };
+    }
+    const siteKey = site === 'shega' ? 'shega' : 'addis_insight';
+    return {
+      articles: stats.by_site[siteKey]?.total_articles || 0,
+      uniqueWords: stats.unique_headline_words[siteKey] || 0,
+    };
+  };
+
+  const getBodyStats = () => {
+    const stats = bodyData.stats;
+    if (site === 'all') {
+      return {
+        articles: stats.total_articles_analyzed,
+        uniqueWords: stats.unique_body_keywords.all,
+      };
+    }
+    const siteKey = site === 'shega' ? 'shega' : 'addis_insight';
+    return {
+      articles: stats.by_site[siteKey]?.articles_with_keywords || 0,
+      uniqueWords: stats.unique_body_keywords[siteKey] || 0,
+      avgPerArticle: stats.by_site[siteKey]?.avg_keywords_per_article || 0,
+    };
+  };
+
+  const headlineStats = getHeadlineStats();
+  const bodyStats = getBodyStats();
+
+  function getSiteLabel(): string {
+    if (site === 'shega') return 'Shega';
+    if (site === 'addis_insight') return 'Addis Insight';
+    return 'All Sites';
+  }
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="meta" className="w-full">
+      <Tabs defaultValue="headline" className="w-full">
         <TabsList className="mb-4">
+          <TabsTrigger value="headline" className="flex items-center gap-2">
+            <Heading1 className="h-4 w-4" />
+            Headline Keywords
+          </TabsTrigger>
+          <TabsTrigger value="body" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Body Keywords
+          </TabsTrigger>
           <TabsTrigger value="meta" className="flex items-center gap-2">
             <Tags className="h-4 w-4" />
             Meta Keywords
           </TabsTrigger>
-          <TabsTrigger value="extracted" className="flex items-center gap-2">
+          <TabsTrigger value="tfidf" className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
             TF-IDF Extracted
           </TabsTrigger>
-          <TabsTrigger value="sentiment" className="flex items-center gap-2">
-            <Hash className="h-4 w-4" />
-            Keyword Sentiment
-          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="headline">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Heading1 className="h-5 w-5" />
+                Headline Keywords
+              </CardTitle>
+              <CardDescription>
+                Keywords extracted from article headlines - {getSiteLabel()}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Stats Row */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <KeywordStats 
+                  label="Articles Analyzed" 
+                  value={headlineStats.articles.toLocaleString()} 
+                />
+                <KeywordStats 
+                  label="Unique Words" 
+                  value={headlineStats.uniqueWords.toLocaleString()} 
+                />
+                <KeywordStats 
+                  label="Top Keyword" 
+                  value={headlineKeywords[0]?.keyword || '-'} 
+                  subtext={headlineKeywords[0] ? `${headlineKeywords[0].count} occurrences` : undefined}
+                />
+                <KeywordStats 
+                  label="Overlap" 
+                  value={`${headlineData.comparison.overlap_percentage.toFixed(1)}%`} 
+                  subtext="Between sites"
+                />
+              </div>
+              
+              {/* Word Cloud */}
+              <WordCloud words={headlineKeywords} palette="headline" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="body">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Body Content Keywords
+              </CardTitle>
+              <CardDescription>
+                Keywords extracted from article body using TF-IDF - {getSiteLabel()}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Stats Row */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <KeywordStats 
+                  label="Articles with Keywords" 
+                  value={bodyStats.articles.toLocaleString()} 
+                />
+                <KeywordStats 
+                  label="Unique Keywords" 
+                  value={bodyStats.uniqueWords.toLocaleString()} 
+                />
+                <KeywordStats 
+                  label="Top Keyword" 
+                  value={bodyKeywords[0]?.keyword || '-'} 
+                  subtext={bodyKeywords[0] ? `TF-IDF: ${bodyKeywords[0].tfidf_score.toFixed(4)}` : undefined}
+                />
+                <KeywordStats 
+                  label="Overlap" 
+                  value={`${bodyData.comparison.overlap_percentage.toFixed(1)}%`} 
+                  subtext="Between sites"
+                />
+              </div>
+              
+              {/* Word Cloud */}
+              <WordCloud words={bodyKeywords} palette="body" />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="meta">
           <Card>
             <CardHeader>
-              <CardTitle>Top Meta Keywords</CardTitle>
-              <CardDescription>Most frequently used keywords from article metadata</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Tags className="h-5 w-5" />
+                Meta Keywords
+              </CardTitle>
+              <CardDescription>
+                Keywords from article metadata tags - {getSiteLabel()}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <BarChartComponent
-                data={metaKeywordsData}
-                bars={[{ dataKey: 'count', color: '#2563eb', name: 'Frequency' }]}
-                xAxisKey="keyword"
-                height={500}
-                layout="vertical"
+              <WordCloud 
+                words={metaKeywordsData} 
+                palette="meta" 
+                emptyMessage={site === 'addis_insight' 
+                  ? 'Addis Insight articles do not have meta keywords in the database. Try viewing Headline or Body keywords instead.'
+                  : 'No meta keywords available for this selection'
+                }
               />
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="extracted">
+        <TabsContent value="tfidf">
           <Card>
             <CardHeader>
-              <CardTitle>TF-IDF Extracted Keywords</CardTitle>
-              <CardDescription>Algorithmically extracted important terms from article content</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                TF-IDF Extracted Keywords
+              </CardTitle>
+              <CardDescription>
+                Algorithmically extracted keywords based on importance - {getSiteLabel()}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <BarChartComponent
-                data={extractedData}
-                bars={[{ dataKey: 'count', color: '#8b5cf6', name: 'Frequency' }]}
-                xAxisKey="keyword"
-                height={500}
-                layout="vertical"
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="sentiment">
-          <Card>
-            <CardHeader>
-              <CardTitle>Keyword Sentiment Distribution</CardTitle>
-              <CardDescription>Sentiment breakdown for top keywords</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <BarChartComponent
-                data={sentimentData}
-                bars={[
-                  { dataKey: 'positive', color: '#22c55e', name: 'Positive', stackId: 'stack' },
-                  { dataKey: 'neutral', color: '#6b7280', name: 'Neutral', stackId: 'stack' },
-                  { dataKey: 'negative', color: '#ef4444', name: 'Negative', stackId: 'stack' },
-                ]}
-                xAxisKey="keyword"
-                height={500}
-                layout="vertical"
-              />
+              <WordCloud words={tfidfKeywordsData} palette="tfidf" />
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Word Cloud Style Display */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Keywords</CardTitle>
-          <CardDescription>Interactive keyword cloud</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {topKeywords.map((kw, i) => {
-              const size = Math.max(0.7, Math.min(1.5, kw.count / topKeywords[0].count * 1.5));
-              return (
-                <Badge
-                  key={kw.keyword}
-                  variant="secondary"
-                  className="cursor-pointer transition-all hover:scale-110"
-                  style={{ fontSize: `${size}rem`, padding: `${size * 0.3}rem ${size * 0.6}rem` }}
-                >
-                  {kw.keyword}
-                </Badge>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
 
-export default function KeywordsPage() {
+interface KeywordsPageProps {
+  readonly searchParams: Promise<SearchParams>;
+}
+
+export default async function KeywordsPage({ searchParams }: KeywordsPageProps) {
+  const params = await searchParams;
+  const site = (params.site as SiteFilter) || 'all';
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Keywords Analytics</h1>
-        <p className="text-muted-foreground mt-1">
-          Analysis of article keywords and key terms
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Keywords Analytics</h1>
+          <p className="text-muted-foreground mt-1">
+            Analysis of article keywords from headlines, body content, and metadata
+          </p>
+        </div>
+        <SiteSelector />
       </div>
 
       <Suspense fallback={<KeywordsSkeleton />}>
-        <KeywordsContent />
+        <KeywordsContent site={site} />
       </Suspense>
     </div>
   );
@@ -176,7 +396,13 @@ function KeywordsSkeleton() {
           <Skeleton className="h-4 w-64" />
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[500px] w-full" />
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+          </div>
+          <Skeleton className="h-[350px] w-full" />
         </CardContent>
       </Card>
     </div>

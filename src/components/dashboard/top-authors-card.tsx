@@ -4,12 +4,11 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { User } from 'lucide-react';
 import type { AuthorWithStats } from '@/types/api';
 import { cn } from '@/lib/utils';
 
 interface TopAuthorsCardProps {
-  authors: AuthorWithStats[];
+  readonly authors: AuthorWithStats[];
 }
 
 export function TopAuthorsCard({ authors }: TopAuthorsCardProps) {
@@ -17,7 +16,7 @@ export function TopAuthorsCard({ authors }: TopAuthorsCardProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-semibold">Top Authors</CardTitle>
+          <CardTitle className="text-base font-semibold">Top 10 Authors</CardTitle>
           <CardDescription>Most prolific writers</CardDescription>
         </CardHeader>
         <CardContent>
@@ -44,11 +43,11 @@ export function TopAuthorsCard({ authors }: TopAuthorsCardProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold">Top Authors</CardTitle>
+        <CardTitle className="text-base font-semibold">Top 10 Authors</CardTitle>
         <CardDescription>Most prolific writers by article count</CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[280px]">
+        <ScrollArea className="h-[450px]">
           <div className="space-y-3">
             {authors.map((author, index) => (
               <div

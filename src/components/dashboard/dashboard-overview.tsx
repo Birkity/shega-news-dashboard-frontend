@@ -1,22 +1,27 @@
-import { dashboardAPI, nlpAPI, authorsAPI, topicsAPI, categoriesAPI } from '@/lib/api';
+import { dashboardAPI, nlpAPI, authorsAPI, topicsAPI } from '@/lib/api';
 import { KPICard, ComparisonKPICard } from './kpi-card';
 import { DailyArticlesChart } from './daily-articles-chart';
 import { SentimentOverview } from './sentiment-overview';
 import { TopAuthorsCard } from './top-authors-card';
 import { TrendingTopicsCard } from './trending-topics-card';
-import { CategoryDistributionCard } from './category-distribution-card';
+import type { SiteFilter } from './site-selector';
 
-async function fetchDashboardData() {
+interface DashboardOverviewProps {
+  readonly site: SiteFilter;
+}
+
+async function fetchDashboardData(site: SiteFilter) {
   try {
-    const [overview, summary, dailyArticles, sentimentBySite, topAuthors, spikes, categories] = 
+    const siteParam = site === 'all' ? undefined : site;
+    
+    const [overview, summary, dailyArticles, sentimentBySite, topAuthors, spikes] = 
       await Promise.allSettled([
         dashboardAPI.getOverview(),
         dashboardAPI.getSummary(),
-        dashboardAPI.getDailyArticles(30),
+        dashboardAPI.getDailyArticles(30, siteParam),
         nlpAPI.getSentimentBySite(),
-        authorsAPI.getTopWithStats({ limit: 5 }),
-        topicsAPI.getSpikes({ weeks: 4, threshold: 2.0 }),
-        categoriesAPI.getDistribution(),
+        authorsAPI.getTopWithStats({ limit: 10, site: siteParam }),
+        topicsAPI.getSpikes({ weeks: 4, threshold: 2 }),
       ]);
 
     return {
@@ -26,7 +31,6 @@ async function fetchDashboardData() {
       sentimentBySite: sentimentBySite.status === 'fulfilled' ? sentimentBySite.value : null,
       topAuthors: topAuthors.status === 'fulfilled' ? topAuthors.value : [],
       spikes: spikes.status === 'fulfilled' ? spikes.value : [],
-      categories: categories.status === 'fulfilled' ? categories.value : [],
     };
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
@@ -37,13 +41,12 @@ async function fetchDashboardData() {
       sentimentBySite: null,
       topAuthors: [],
       spikes: [],
-      categories: [],
     };
   }
 }
 
-export async function DashboardOverview() {
-  const data = await fetchDashboardData();
+export async function DashboardOverview({ site }: DashboardOverviewProps) {
+  const data = await fetchDashboardData(site);
 
   const formatNumber = (num: number | undefined) => {
     if (num === undefined) return '—';
@@ -55,6 +58,78 @@ export async function DashboardOverview() {
     return num.toFixed(1);
   };
 
+  // For single site view, show simple KPI cards
+  if (site !== 'all') {
+    const siteData = site === 'shega' ? data.summary?.shega : data.summary?.addis_insight;
+    const siteCount = site === 'shega' 
+      ? data.overview?.article_count.shega_count 
+      : data.overview?.article_count.addis_insight_count;
+    const siteSentiment = site === 'shega' 
+      ? data.sentimentBySite?.shega 
+      : data.sentimentBySite?.addis_insight;
+
+    return (
+      <div className="space-y-6">
+        {/* KPI Cards Row - Single Site View */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <KPICard
+            title="Total Articles"
+            value={formatNumber(siteCount)}
+            icon="newspaper"
+          />
+          <KPICard
+            title="Unique Authors"
+            value={formatNumber(siteData?.unique_authors)}
+            icon="users"
+          />
+          <KPICard
+            title="Avg Word Count"
+            value={formatDecimal(siteData?.avg_body_word_count)}
+            icon="fileText"
+          />
+          <KPICard
+            title="Avg Readability"
+            value={formatDecimal(siteData?.avg_readability)}
+            icon="gauge"
+          />
+        </div>
+
+        {/* Second KPI Row */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <KPICard
+            title="Avg Sentiment"
+            value={formatDecimal(siteData?.avg_sentiment)}
+            subtitle={siteSentiment ? `${siteSentiment.positive_pct?.toFixed(0)}% positive` : undefined}
+            icon="gauge"
+          />
+          <KPICard
+            title="Avg Headline Length"
+            value={formatDecimal(siteData?.avg_headline_word_count)}
+            subtitle="words per headline"
+            icon="fileText"
+          />
+        </div>
+
+        {/* Charts Row */}
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <DailyArticlesChart data={data.dailyArticles} site={site} />
+          </div>
+          <div>
+            <SentimentOverview data={data.sentimentBySite} highlightSite={site} />
+          </div>
+        </div>
+
+        {/* Bottom Row */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <TopAuthorsCard authors={data.topAuthors} />
+          <TrendingTopicsCard topics={data.spikes} />
+        </div>
+      </div>
+    );
+  }
+
+  // Comparison view (both sites)
   return (
     <div className="space-y-6">
       {/* KPI Cards Row */}
@@ -103,10 +178,9 @@ export async function DashboardOverview() {
       </div>
 
       {/* Bottom Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <TopAuthorsCard authors={data.topAuthors} />
         <TrendingTopicsCard topics={data.spikes} />
-        <CategoryDistributionCard categories={data.categories} />
       </div>
     </div>
   );

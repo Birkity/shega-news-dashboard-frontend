@@ -96,7 +96,7 @@ describe('DashboardOverview Component', () => {
     (topicsAPI.getSpikes as jest.Mock).mockResolvedValue(mockSpikes);
     (categoriesAPI.getDistribution as jest.Mock).mockResolvedValue(mockCategories);
 
-    const DashboardComponent = await DashboardOverview();
+    const DashboardComponent = await DashboardOverview({ site: 'all' });
     render(DashboardComponent);
 
     // Check KPI cards are rendered (multiple Shega/Addis Insight labels exist)
@@ -115,7 +115,7 @@ describe('DashboardOverview Component', () => {
     (topicsAPI.getSpikes as jest.Mock).mockResolvedValue([]);
     (categoriesAPI.getDistribution as jest.Mock).mockResolvedValue([]);
 
-    const DashboardComponent = await DashboardOverview();
+    const DashboardComponent = await DashboardOverview({ site: 'all' });
     render(DashboardComponent);
 
     // Dashboard should still render with fallback values (multiple Shega labels exist)
@@ -131,7 +131,7 @@ describe('DashboardOverview Component', () => {
     (topicsAPI.getSpikes as jest.Mock).mockRejectedValue(new Error('API Error'));
     (categoriesAPI.getDistribution as jest.Mock).mockRejectedValue(new Error('API Error'));
 
-    const DashboardComponent = await DashboardOverview();
+    const DashboardComponent = await DashboardOverview({ site: 'all' });
     render(DashboardComponent);
 
     // Dashboard should still render with fallback values (multiple Shega labels exist)
@@ -147,12 +147,12 @@ describe('DashboardOverview Component', () => {
     (topicsAPI.getSpikes as jest.Mock).mockResolvedValue(mockSpikes);
     (categoriesAPI.getDistribution as jest.Mock).mockResolvedValue(mockCategories);
 
-    await DashboardOverview();
+    await DashboardOverview({ site: 'all' });
 
     expect(dashboardAPI.getOverview).toHaveBeenCalled();
     expect(dashboardAPI.getSummary).toHaveBeenCalled();
-    expect(dashboardAPI.getDailyArticles).toHaveBeenCalledWith(30);
-    expect(authorsAPI.getTopWithStats).toHaveBeenCalledWith({ limit: 5 });
+    expect(dashboardAPI.getDailyArticles).toHaveBeenCalledWith(30, undefined);
+    expect(authorsAPI.getTopWithStats).toHaveBeenCalledWith({ limit: 10, site: undefined });
     expect(topicsAPI.getSpikes).toHaveBeenCalledWith({ weeks: 4, threshold: 2 });
   });
 
@@ -165,7 +165,7 @@ describe('DashboardOverview Component', () => {
     (topicsAPI.getSpikes as jest.Mock).mockResolvedValue(mockSpikes);
     (categoriesAPI.getDistribution as jest.Mock).mockResolvedValue(mockCategories);
 
-    const DashboardComponent = await DashboardOverview();
+    const DashboardComponent = await DashboardOverview({ site: 'all' });
     render(DashboardComponent);
 
     expect(screen.getByText('Daily Publishing Trends')).toBeInTheDocument();
@@ -180,7 +180,7 @@ describe('DashboardOverview Component', () => {
     (topicsAPI.getSpikes as jest.Mock).mockResolvedValue(mockSpikes);
     (categoriesAPI.getDistribution as jest.Mock).mockResolvedValue(mockCategories);
 
-    const DashboardComponent = await DashboardOverview();
+    const DashboardComponent = await DashboardOverview({ site: 'all' });
     render(DashboardComponent);
 
     expect(screen.getByText('Sentiment Analysis')).toBeInTheDocument();
@@ -195,10 +195,10 @@ describe('DashboardOverview Component', () => {
     (topicsAPI.getSpikes as jest.Mock).mockResolvedValue(mockSpikes);
     (categoriesAPI.getDistribution as jest.Mock).mockResolvedValue(mockCategories);
 
-    const DashboardComponent = await DashboardOverview();
+    const DashboardComponent = await DashboardOverview({ site: 'all' });
     render(DashboardComponent);
 
-    expect(screen.getByText('Top Authors')).toBeInTheDocument();
+    expect(screen.getByText('Top 10 Authors')).toBeInTheDocument();
   });
 
   it('renders trending topics card', async () => {
@@ -210,24 +210,9 @@ describe('DashboardOverview Component', () => {
     (topicsAPI.getSpikes as jest.Mock).mockResolvedValue(mockSpikes);
     (categoriesAPI.getDistribution as jest.Mock).mockResolvedValue(mockCategories);
 
-    const DashboardComponent = await DashboardOverview();
+    const DashboardComponent = await DashboardOverview({ site: 'all' });
     render(DashboardComponent);
 
     expect(screen.getByText('Trending Topics')).toBeInTheDocument();
-  });
-
-  it('renders category distribution card', async () => {
-    (dashboardAPI.getOverview as jest.Mock).mockResolvedValue(mockOverview);
-    (dashboardAPI.getSummary as jest.Mock).mockResolvedValue(mockSummary);
-    (dashboardAPI.getDailyArticles as jest.Mock).mockResolvedValue(mockDailyArticles);
-    (nlpAPI.getSentimentBySite as jest.Mock).mockResolvedValue(mockSentimentBySite);
-    (authorsAPI.getTopWithStats as jest.Mock).mockResolvedValue(mockTopAuthors);
-    (topicsAPI.getSpikes as jest.Mock).mockResolvedValue(mockSpikes);
-    (categoriesAPI.getDistribution as jest.Mock).mockResolvedValue(mockCategories);
-
-    const DashboardComponent = await DashboardOverview();
-    render(DashboardComponent);
-
-    expect(screen.getByText('Category Distribution')).toBeInTheDocument();
   });
 });

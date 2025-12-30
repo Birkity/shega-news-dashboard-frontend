@@ -25,6 +25,8 @@ interface AreaConfig {
   stackId?: string;
 }
 
+type TooltipFormatType = 'number' | 'percent' | 'percentage' | 'currency' | 'decimal';
+
 interface AreaChartComponentProps {
   data: DataPoint[];
   areas: AreaConfig[];
@@ -35,8 +37,24 @@ interface AreaChartComponentProps {
   showGrid?: boolean;
   showLegend?: boolean;
   formatXAxis?: (value: string) => string;
-  formatTooltip?: (value: number) => string;
+  tooltipFormat?: TooltipFormatType;
   gradient?: boolean;
+}
+
+// Format value based on type
+function formatValue(value: number, formatType?: TooltipFormatType): string {
+  switch (formatType) {
+    case 'percent':
+    case 'percentage':
+      return `${(value * 100).toFixed(1)}%`;
+    case 'currency':
+      return `$${value.toLocaleString()}`;
+    case 'decimal':
+      return value.toFixed(2);
+    case 'number':
+    default:
+      return typeof value === 'number' ? value.toLocaleString() : String(value);
+  }
 }
 
 interface CustomTooltipProps {
@@ -47,28 +65,28 @@ interface CustomTooltipProps {
     color: string;
   }>;
   label?: string;
-  formatValue?: (value: number) => string;
+  formatType?: TooltipFormatType;
 }
 
 const CustomTooltip = ({
   active,
   payload,
   label,
-  formatValue,
+  formatType,
 }: CustomTooltipProps) => {
-  if (active && payload && payload.length) {
+  if (active && payload?.length) {
     return (
       <div className="rounded-lg border bg-background p-3 shadow-lg">
         <p className="mb-2 font-medium">{label}</p>
-        {payload.map((entry, index) => (
-          <div key={index} className="flex items-center gap-2 text-sm">
+        {payload.map((entry) => (
+          <div key={entry.name} className="flex items-center gap-2 text-sm">
             <div
               className="h-3 w-3 rounded-full"
               style={{ backgroundColor: entry.color }}
             />
             <span className="text-muted-foreground">{entry.name}:</span>
             <span className="font-medium">
-              {formatValue ? formatValue(entry.value as number) : entry.value}
+              {formatValue(entry.value, formatType)}
             </span>
           </div>
         ))}
@@ -88,9 +106,9 @@ export function AreaChartComponent({
   showGrid = true,
   showLegend = true,
   formatXAxis,
-  formatTooltip,
+  tooltipFormat,
   gradient = true,
-}: AreaChartComponentProps) {
+}: Readonly<AreaChartComponentProps>) {
   const chart = (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
@@ -116,7 +134,7 @@ export function AreaChartComponent({
           className="text-muted-foreground"
         />
         <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} className="text-muted-foreground" />
-        <Tooltip content={<CustomTooltip formatValue={formatTooltip} />} />
+        <Tooltip content={<CustomTooltip formatType={tooltipFormat} />} />
         {showLegend && <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />}
         {areas.map((area) => (
           <Area
