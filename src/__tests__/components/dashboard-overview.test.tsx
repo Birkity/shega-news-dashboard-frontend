@@ -69,12 +69,12 @@ const mockSentimentBySite = {
 };
 
 const mockTopAuthors = [
-  { author: 'John Doe', site: 'shega', article_count: 50, avg_polarity: 0.2, avg_subjectivity: 0.4 },
-  { author: 'Jane Smith', site: 'addis_insight', article_count: 40, avg_polarity: 0.1, avg_subjectivity: 0.5 },
+  { author: 'John Doe', site: 'shega', article_count: 50, avg_polarity: 0.2, avg_subjectivity: 0.4, sentiment_breakdown: { positive: 30, negative: 10, neutral: 10, positive_pct: 60 }, avg_word_count: 500 },
+  { author: 'Jane Smith', site: 'addis_insight', article_count: 40, avg_polarity: 0.1, avg_subjectivity: 0.5, sentiment_breakdown: { positive: 20, negative: 10, neutral: 10, positive_pct: 50 }, avg_word_count: 450 },
 ];
 
 const mockSpikes = [
-  { keyword: 'AI', current_count: 100, previous_count: 20, spike_ratio: 5.0, is_new: false },
+  { keyword: 'AI', recent_count: 100, previous_count: 20, spike_ratio: 5, is_new: false },
 ];
 
 const mockCategories = [
@@ -153,7 +153,7 @@ describe('DashboardOverview Component', () => {
     expect(dashboardAPI.getSummary).toHaveBeenCalled();
     expect(dashboardAPI.getDailyArticles).toHaveBeenCalledWith(30);
     expect(authorsAPI.getTopWithStats).toHaveBeenCalledWith({ limit: 5 });
-    expect(topicsAPI.getSpikes).toHaveBeenCalledWith({ weeks: 4, threshold: 2.0 });
+    expect(topicsAPI.getSpikes).toHaveBeenCalledWith({ weeks: 4, threshold: 2 });
   });
 
   it('renders daily articles chart', async () => {

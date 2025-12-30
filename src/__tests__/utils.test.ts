@@ -56,10 +56,12 @@ describe('cn (classnames merge utility)', () => {
   });
 
   it('handles complex combinations', () => {
+    const isEnabled = true;
+    const isDisabled = false;
     const result = cn(
       'base-class',
-      true && 'conditional-true',
-      false && 'conditional-false',
+      isEnabled && 'conditional-true',
+      isDisabled && 'conditional-false',
       undefined,
       null,
       ['array-class-1', 'array-class-2'],

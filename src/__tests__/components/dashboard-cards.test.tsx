@@ -113,12 +113,14 @@ describe('SentimentOverview', () => {
   it('renders sentiment tabs with data', () => {
     const mockData = {
       shega: { 
+        count: 100, avg_polarity: 0.2, avg_subjectivity: 0.4,
         positive: 40, neutral: 35, negative: 25, 
-        positive_pct: 40.0, neutral_pct: 35.0, negative_pct: 25.0 
+        positive_pct: 40, neutral_pct: 35, negative_pct: 25 
       },
       addis_insight: { 
+        count: 100, avg_polarity: 0.1, avg_subjectivity: 0.5,
         positive: 30, neutral: 45, negative: 25,
-        positive_pct: 30.0, neutral_pct: 45.0, negative_pct: 25.0
+        positive_pct: 30, neutral_pct: 45, negative_pct: 25
       },
     };
 
@@ -139,8 +141,8 @@ describe('TopAuthorsCard', () => {
 
   it('renders authors list with data', () => {
     const mockAuthors = [
-      { author: 'John Doe', site: 'shega' as const, article_count: 50, avg_polarity: 0.2, avg_subjectivity: 0.4 },
-      { author: 'Jane Smith', site: 'addis_insight' as const, article_count: 40, avg_polarity: -0.1, avg_subjectivity: 0.5 },
+      { author: 'John Doe', site: 'shega' as const, article_count: 50, avg_polarity: 0.2, avg_subjectivity: 0.4, sentiment_breakdown: { positive: 30, negative: 10, neutral: 10, positive_pct: 60 }, avg_word_count: 500 },
+      { author: 'Jane Smith', site: 'addis_insight' as const, article_count: 40, avg_polarity: -0.1, avg_subjectivity: 0.5, sentiment_breakdown: { positive: 15, negative: 15, neutral: 10, positive_pct: 37.5 }, avg_word_count: 450 },
     ];
 
     render(<TopAuthorsCard authors={mockAuthors} />);
@@ -152,7 +154,7 @@ describe('TopAuthorsCard', () => {
 
   it('displays correct site badges', () => {
     const mockAuthors = [
-      { author: 'John Doe', site: 'shega' as const, article_count: 50, avg_polarity: 0.2, avg_subjectivity: 0.4 },
+      { author: 'John Doe', site: 'shega' as const, article_count: 50, avg_polarity: 0.2, avg_subjectivity: 0.4, sentiment_breakdown: { positive: 30, negative: 10, neutral: 10, positive_pct: 60 }, avg_word_count: 500 },
     ];
 
     render(<TopAuthorsCard authors={mockAuthors} />);
@@ -161,7 +163,7 @@ describe('TopAuthorsCard', () => {
 
   it('handles positive polarity', () => {
     const mockAuthors = [
-      { author: 'John Doe', site: 'shega' as const, article_count: 50, avg_polarity: 0.3, avg_subjectivity: 0.4 },
+      { author: 'John Doe', site: 'shega' as const, article_count: 50, avg_polarity: 0.3, avg_subjectivity: 0.4, sentiment_breakdown: { positive: 30, negative: 10, neutral: 10, positive_pct: 60 }, avg_word_count: 500 },
     ];
 
     render(<TopAuthorsCard authors={mockAuthors} />);
@@ -170,7 +172,7 @@ describe('TopAuthorsCard', () => {
 
   it('handles negative polarity', () => {
     const mockAuthors = [
-      { author: 'John Doe', site: 'shega' as const, article_count: 50, avg_polarity: -0.3, avg_subjectivity: 0.4 },
+      { author: 'John Doe', site: 'shega' as const, article_count: 50, avg_polarity: -0.3, avg_subjectivity: 0.4, sentiment_breakdown: { positive: 10, negative: 30, neutral: 10, positive_pct: 20 }, avg_word_count: 500 },
     ];
 
     render(<TopAuthorsCard authors={mockAuthors} />);
@@ -179,7 +181,7 @@ describe('TopAuthorsCard', () => {
 
   it('handles neutral polarity', () => {
     const mockAuthors = [
-      { author: 'John Doe', site: 'shega' as const, article_count: 50, avg_polarity: 0.05, avg_subjectivity: 0.4 },
+      { author: 'John Doe', site: 'shega' as const, article_count: 50, avg_polarity: 0.05, avg_subjectivity: 0.4, sentiment_breakdown: { positive: 20, negative: 20, neutral: 10, positive_pct: 40 }, avg_word_count: 500 },
     ];
 
     render(<TopAuthorsCard authors={mockAuthors} />);
@@ -196,8 +198,8 @@ describe('TrendingTopicsCard', () => {
 
   it('renders topics list with data', () => {
     const mockTopics = [
-      { keyword: 'AI', current_count: 50, previous_count: 10, spike_ratio: 5.0, is_new: false },
-      { keyword: 'Blockchain', current_count: 30, previous_count: null, spike_ratio: null, is_new: true },
+      { keyword: 'AI', recent_count: 50, previous_count: 10, spike_ratio: 5, is_new: false },
+      { keyword: 'Blockchain', recent_count: 30, previous_count: 0, spike_ratio: null, is_new: true },
     ];
 
     render(<TrendingTopicsCard topics={mockTopics} />);
@@ -209,7 +211,7 @@ describe('TrendingTopicsCard', () => {
 
   it('handles new topics', () => {
     const mockTopics = [
-      { keyword: 'NewTopic', current_count: 30, previous_count: null, spike_ratio: null, is_new: true },
+      { keyword: 'NewTopic', recent_count: 30, previous_count: 0, spike_ratio: null, is_new: true },
     ];
 
     render(<TrendingTopicsCard topics={mockTopics} />);
@@ -219,7 +221,7 @@ describe('TrendingTopicsCard', () => {
 
   it('handles high spike ratio', () => {
     const mockTopics = [
-      { keyword: 'ViralTopic', current_count: 100, previous_count: 10, spike_ratio: 10.0, is_new: false },
+      { keyword: 'ViralTopic', recent_count: 100, previous_count: 10, spike_ratio: 10, is_new: false },
     ];
 
     render(<TrendingTopicsCard topics={mockTopics} />);
@@ -228,7 +230,7 @@ describe('TrendingTopicsCard', () => {
 
   it('handles medium spike ratio', () => {
     const mockTopics = [
-      { keyword: 'MediumTopic', current_count: 30, previous_count: 10, spike_ratio: 3.0, is_new: false },
+      { keyword: 'MediumTopic', recent_count: 30, previous_count: 10, spike_ratio: 3, is_new: false },
     ];
 
     render(<TrendingTopicsCard topics={mockTopics} />);
@@ -237,7 +239,7 @@ describe('TrendingTopicsCard', () => {
 
   it('handles low spike ratio', () => {
     const mockTopics = [
-      { keyword: 'LowTopic', current_count: 15, previous_count: 10, spike_ratio: 1.5, is_new: false },
+      { keyword: 'LowTopic', recent_count: 15, previous_count: 10, spike_ratio: 1.5, is_new: false },
     ];
 
     render(<TrendingTopicsCard topics={mockTopics} />);
@@ -247,9 +249,9 @@ describe('TrendingTopicsCard', () => {
   it('limits to 10 topics', () => {
     const mockTopics = Array.from({ length: 15 }, (_, i) => ({
       keyword: `Topic${i + 1}`,
-      current_count: 50 - i,
+      recent_count: 50 - i,
       previous_count: 10,
-      spike_ratio: 5.0,
+      spike_ratio: 5,
       is_new: false,
     }));
 

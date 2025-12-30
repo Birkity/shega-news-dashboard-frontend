@@ -6,7 +6,7 @@
 import config, { endpoints } from '@/lib/config';
 
 // Mock fetch globally
-global.fetch = jest.fn();
+globalThis.fetch = jest.fn();
 
 describe('API Configuration', () => {
   it('should have correct default API base URL', () => {
@@ -79,7 +79,7 @@ describe('fetchAPI helper', () => {
 
   it('should call fetch with correct URL and options', async () => {
     const mockData = { status: 'healthy' };
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockData,
     });
@@ -88,12 +88,12 @@ describe('fetchAPI helper', () => {
     
     const result = await healthAPI.getHealth();
     
-    expect(global.fetch).toHaveBeenCalled();
+    expect(globalThis.fetch).toHaveBeenCalled();
     expect(result).toEqual(mockData);
   });
 
   it('should throw error on failed fetch', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 500,
       json: async () => ({ detail: 'Server error' }),
@@ -126,7 +126,7 @@ describe('Dashboard API', () => {
       },
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockOverview,
     });
@@ -144,7 +144,7 @@ describe('Dashboard API', () => {
       { date: '2024-01-02', shega: 7, addis_insight: 4 },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockDailyArticles,
     });
@@ -167,17 +167,16 @@ describe('Articles API', () => {
 
   it('should fetch paginated articles', async () => {
     const mockArticles = {
-      items: [
-        { _id: '1', title: 'Test Article 1' },
-        { _id: '2', title: 'Test Article 2' },
+      articles: [
+        { id: '1', title: 'Test Article 1' },
+        { id: '2', title: 'Test Article 2' },
       ],
       total: 100,
       page: 1,
       per_page: 20,
-      total_pages: 5,
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockArticles,
     });
@@ -185,20 +184,20 @@ describe('Articles API', () => {
     const { articlesAPI } = await import('@/lib/api');
     const result = await articlesAPI.getArticles({ page: 1, per_page: 20 });
 
-    expect(result.items).toBeDefined();
+    expect(result.articles).toBeDefined();
     expect(result.total).toBe(100);
-    expect(Array.isArray(result.items)).toBe(true);
+    expect(Array.isArray(result.articles)).toBe(true);
   });
 
   it('should fetch single article by ID', async () => {
     const mockArticle = {
-      _id: '123',
+      id: '123',
       title: 'Test Article',
-      content: 'Test content',
+      body: 'Test content',
       site: 'shega',
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockArticle,
     });
@@ -206,7 +205,7 @@ describe('Articles API', () => {
     const { articlesAPI } = await import('@/lib/api');
     const result = await articlesAPI.getArticleById('123');
 
-    expect(result._id).toBe('123');
+    expect(result.id).toBe('123');
     expect(result.title).toBe('Test Article');
   });
 
@@ -219,7 +218,7 @@ describe('Articles API', () => {
       },
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockStats,
     });
@@ -239,18 +238,18 @@ describe('NLP API', () => {
 
   it('should fetch sentiment summary', async () => {
     const mockSentiment = {
-      overall: {
-        positive: 0.4,
-        negative: 0.3,
-        neutral: 0.3,
-      },
-      by_site: {
-        shega: { positive: 0.5, negative: 0.2, neutral: 0.3 },
-        addis_insight: { positive: 0.3, negative: 0.4, neutral: 0.3 },
-      },
+      count: 100,
+      avg_polarity: 0.1,
+      avg_subjectivity: 0.4,
+      positive: 40,
+      negative: 30,
+      neutral: 30,
+      positive_pct: 40,
+      negative_pct: 30,
+      neutral_pct: 30,
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockSentiment,
     });
@@ -258,8 +257,8 @@ describe('NLP API', () => {
     const { nlpAPI } = await import('@/lib/api');
     const result = await nlpAPI.getSentimentSummary();
 
-    expect(result.overall).toBeDefined();
-    expect(result.by_site).toBeDefined();
+    expect(result.count).toBeDefined();
+    expect(result.positive).toBeDefined();
   });
 
   it('should fetch top entities with optional type filter', async () => {
@@ -268,7 +267,7 @@ describe('NLP API', () => {
       { entity: 'Addis Ababa', entity_type: 'locations', count: 30 },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockEntities,
     });
@@ -293,7 +292,7 @@ describe('Keywords API', () => {
       { keyword: 'business', count: 80 },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockKeywords,
     });
@@ -320,7 +319,7 @@ describe('Comparison API', () => {
       addis_insight_only: [{ keyword: 'economy', count: 15 }],
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockComparison,
     });
@@ -340,7 +339,7 @@ describe('Comparison API', () => {
       addis_insight_only: [],
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockComparison,
     });
@@ -365,7 +364,7 @@ describe('Health API', () => {
       version: '1.0.0',
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockHealth,
     });
@@ -380,7 +379,7 @@ describe('Health API', () => {
   it('should fetch ready status', async () => {
     const mockReady = { status: 'ready' };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockReady,
     });
@@ -394,7 +393,7 @@ describe('Health API', () => {
   it('should fetch live status', async () => {
     const mockLive = { status: 'live' };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockLive,
     });
@@ -418,7 +417,7 @@ describe('Authors API', () => {
       { author: 'Jane Smith', count: 40 },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockAuthors,
     });
@@ -440,13 +439,14 @@ describe('Topics API', () => {
 
   it('should fetch topic evolution', async () => {
     const mockEvolution = {
-      months: ['2024-01', '2024-02'],
-      topics: [
-        { topic: 'Technology', values: [10, 15] },
+      months: 6,
+      evolution: [
+        { month: '2024-01', top_keywords: [{ keyword: 'Technology', count: 10 }], total_keywords: 15 },
+        { month: '2024-02', top_keywords: [{ keyword: 'Technology', count: 15 }], total_keywords: 20 },
       ],
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockEvolution,
     });
@@ -455,7 +455,7 @@ describe('Topics API', () => {
     const result = await topicsAPI.getEvolution({ months: 6 });
 
     expect(result.months).toBeDefined();
-    expect(result.topics).toBeDefined();
+    expect(result.evolution).toBeDefined();
   });
 });
 
@@ -471,7 +471,7 @@ describe('Sentiment API', () => {
       { month: '2024-02', positive: 45, negative: 25, neutral: 30 },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockTimeline,
     });

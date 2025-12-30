@@ -25,15 +25,16 @@ import { ArticlesPagination } from '@/components/articles/articles-pagination';
 describe('ArticleCard', () => {
   const mockArticle = {
     id: '1',
-    _id: '1',
     title: 'Test Article Title',
+    slug: 'test-article-title',
     body: 'This is a test article body content that should be displayed as an excerpt in the card component.',
     author: 'John Doe',
     posted_date: '2024-01-15T10:00:00Z',
     site: 'shega' as const,
-    url: 'https://example.com/article',
+    full_url: 'https://example.com/article',
     word_count_body: 500,
     categories: ['Technology', 'Business', 'Innovation', 'Startup'],
+    keywords: ['tech', 'startup'],
     sentiment_label: 'positive' as const,
     sentiment_polarity: 0.5,
   };
@@ -95,14 +96,14 @@ describe('ArticleCard', () => {
   });
 
   it('renders article without author', () => {
-    const articleWithoutAuthor = { ...mockArticle, author: undefined };
+    const articleWithoutAuthor = { ...mockArticle, author: null };
     render(<ArticleCard article={articleWithoutAuthor} />);
     expect(screen.getByText('Test Article Title')).toBeInTheDocument();
     expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
   });
 
   it('renders article without body', () => {
-    const articleWithoutBody = { ...mockArticle, body: undefined };
+    const articleWithoutBody = { ...mockArticle, body: '' };
     render(<ArticleCard article={articleWithoutBody} />);
     expect(screen.getByText('Test Article Title')).toBeInTheDocument();
   });
@@ -116,7 +117,7 @@ describe('ArticleCard', () => {
   });
 
   it('renders article without categories', () => {
-    const articleWithoutCategories = { ...mockArticle, categories: undefined };
+    const articleWithoutCategories = { ...mockArticle, categories: [] };
     render(<ArticleCard article={articleWithoutCategories} />);
     expect(screen.getByText('Test Article Title')).toBeInTheDocument();
   });
@@ -196,8 +197,8 @@ describe('ArticlesPagination', () => {
   it('disables last page button on last page', () => {
     render(<ArticlesPagination currentPage={10} totalPages={10} />);
     const buttons = screen.getAllByRole('button');
-    const lastButton = buttons[buttons.length - 1];
-    const secondLastButton = buttons[buttons.length - 2];
+    const lastButton = buttons.at(-1);
+    const secondLastButton = buttons.at(-2);
     expect(lastButton).toBeDisabled();
     expect(secondLastButton).toBeDisabled();
   });
@@ -221,7 +222,8 @@ describe('ArticlesPagination', () => {
     render(<ArticlesPagination currentPage={5} totalPages={10} />);
     const buttons = screen.getAllByRole('button');
     // Second to last button is next
-    fireEvent.click(buttons[buttons.length - 2]);
+    const nextButton = buttons.at(-2);
+    if (nextButton) fireEvent.click(nextButton);
     expect(mockPush).toHaveBeenCalled();
   });
 
@@ -235,7 +237,8 @@ describe('ArticlesPagination', () => {
   it('navigates to last page', () => {
     render(<ArticlesPagination currentPage={5} totalPages={10} />);
     const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[buttons.length - 1]);
+    const lastButton = buttons.at(-1);
+    if (lastButton) fireEvent.click(lastButton);
     expect(mockPush).toHaveBeenCalled();
   });
 
@@ -252,8 +255,8 @@ describe('ArticlesPagination', () => {
     // All navigation buttons should be disabled
     expect(buttons[0]).toBeDisabled();
     expect(buttons[1]).toBeDisabled();
-    expect(buttons[buttons.length - 1]).toBeDisabled();
-    expect(buttons[buttons.length - 2]).toBeDisabled();
+    expect(buttons.at(-1)).toBeDisabled();
+    expect(buttons.at(-2)).toBeDisabled();
   });
 
   it('limits visible page buttons', () => {

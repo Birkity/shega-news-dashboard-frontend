@@ -3,8 +3,10 @@
  * Tests for uncovered API endpoints and edge cases
  */
 
+import type { CategoryDistribution } from '@/types/api';
+
 // Mock fetch globally
-global.fetch = jest.fn();
+globalThis.fetch = jest.fn();
 
 describe('Publishing API', () => {
   beforeEach(() => {
@@ -14,21 +16,20 @@ describe('Publishing API', () => {
 
   it('should fetch publishing trends', async () => {
     const mockTrends = {
-      by_day_of_week: [
-        { day: 'Monday', count: 100 },
-        { day: 'Tuesday', count: 120 },
+      by_weekday: [
+        { value: 'Monday', shega: 100, addis_insight: 80 },
+        { value: 'Tuesday', shega: 120, addis_insight: 90 },
       ],
       by_hour: [
-        { hour: 9, count: 50 },
-        { hour: 14, count: 75 },
+        { value: '9', shega: 50, addis_insight: 40 },
+        { value: '14', shega: 75, addis_insight: 60 },
       ],
-      peak_times: {
-        most_active_day: 'Wednesday',
-        most_active_hour: 14,
-      },
+      by_month: [
+        { value: 'January', shega: 200, addis_insight: 150 },
+      ],
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockTrends,
     });
@@ -36,40 +37,48 @@ describe('Publishing API', () => {
     const { publishingAPI } = await import('@/lib/api');
     const result = await publishingAPI.getTrends();
 
-    expect(global.fetch).toHaveBeenCalled();
-    expect(result.by_day_of_week).toBeDefined();
+    expect(globalThis.fetch).toHaveBeenCalled();
+    expect(result.by_weekday).toBeDefined();
     expect(result.by_hour).toBeDefined();
   });
 
   it('should fetch publishing trends with site filter', async () => {
     const mockTrends = {
-      by_day_of_week: [],
+      by_weekday: [],
       by_hour: [],
+      by_month: [],
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockTrends,
     });
 
     const { publishingAPI } = await import('@/lib/api');
-    const result = await publishingAPI.getTrends('shega');
+    await publishingAPI.getTrends('shega');
 
-    expect(global.fetch).toHaveBeenCalled();
-    const fetchCall = (global.fetch as jest.Mock).mock.calls[0][0];
+    expect(globalThis.fetch).toHaveBeenCalled();
+    const fetchCall = (globalThis.fetch as jest.Mock).mock.calls[0][0];
     expect(fetchCall).toContain('site=shega');
   });
 
   it('should fetch yearly publishing data', async () => {
     const mockYearly = {
-      years: [2023, 2024],
-      data: {
-        2023: { shega: 500, addis_insight: 400 },
-        2024: { shega: 600, addis_insight: 450 },
-      },
+      years: [
+        {
+          year: 2023,
+          shega: { articles: 500, unique_authors: 20, avg_word_count: 800, yoy_growth_pct: null },
+          addis_insight: { articles: 400, unique_authors: 15, avg_word_count: 750, yoy_growth_pct: null },
+        },
+        {
+          year: 2024,
+          shega: { articles: 600, unique_authors: 25, avg_word_count: 850, yoy_growth_pct: 20 },
+          addis_insight: { articles: 450, unique_authors: 18, avg_word_count: 780, yoy_growth_pct: 12.5 },
+        },
+      ],
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockYearly,
     });
@@ -77,15 +86,15 @@ describe('Publishing API', () => {
     const { publishingAPI } = await import('@/lib/api');
     const result = await publishingAPI.getYearly();
 
-    expect(global.fetch).toHaveBeenCalled();
+    expect(globalThis.fetch).toHaveBeenCalled();
     expect(result.years).toBeDefined();
-    expect(result.data).toBeDefined();
+    expect(result.years.length).toBe(2);
   });
 
   it('should fetch yearly publishing data with site filter', async () => {
-    const mockYearly = { years: [], data: {} };
+    const mockYearly = { years: [] };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockYearly,
     });
@@ -93,7 +102,7 @@ describe('Publishing API', () => {
     const { publishingAPI } = await import('@/lib/api');
     await publishingAPI.getYearly('addis_insight');
 
-    const fetchCall = (global.fetch as jest.Mock).mock.calls[0][0];
+    const fetchCall = (globalThis.fetch as jest.Mock).mock.calls[0][0];
     expect(fetchCall).toContain('site=addis_insight');
   });
 });
@@ -111,7 +120,7 @@ describe('Scraping API', () => {
       message: 'Scraping initiated',
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockResponse,
     });
@@ -119,15 +128,15 @@ describe('Scraping API', () => {
     const { scrapingAPI } = await import('@/lib/api');
     const result = await scrapingAPI.trigger({ site: 'shega' });
 
-    expect(global.fetch).toHaveBeenCalled();
-    const [url, options] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(globalThis.fetch).toHaveBeenCalled();
+    const [url, options] = (globalThis.fetch as jest.Mock).mock.calls[0];
     expect(url).toContain('/scraping/trigger');
     expect(options.method).toBe('POST');
     expect(result.task_id).toBe('task-123');
   });
 
   it('should handle scraping trigger error', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 500,
       json: async () => ({ detail: 'Scraping failed' }),
@@ -140,13 +149,18 @@ describe('Scraping API', () => {
 
   it('should get scraping task status', async () => {
     const mockStatus = {
-      task_id: 'task-123',
-      status: 'completed',
-      progress: 100,
-      articles_scraped: 50,
+      status: 'completed' as const,
+      started_at: '2024-01-15T10:00:00Z',
+      completed_at: '2024-01-15T10:30:00Z',
+      site: 'shega' as const,
+      stats: {
+        articles_found: 100,
+        articles_new: 50,
+        articles_updated: 20,
+      },
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockStatus,
     });
@@ -154,8 +168,8 @@ describe('Scraping API', () => {
     const { scrapingAPI } = await import('@/lib/api');
     const result = await scrapingAPI.getStatus('task-123');
 
-    expect(result.task_id).toBe('task-123');
     expect(result.status).toBe('completed');
+    expect(result.site).toBe('shega');
   });
 
   it('should get all scraping statuses', async () => {
@@ -169,7 +183,7 @@ describe('Scraping API', () => {
       failed_count: 0,
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockAllStatus,
     });
@@ -189,7 +203,7 @@ describe('Scraping API', () => {
       preview_urls: ['https://example.com/article1', 'https://example.com/article2'],
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockPreview,
     });
@@ -211,13 +225,15 @@ describe('Scheduler API', () => {
 
   it('should get scheduler status', async () => {
     const mockStatus = {
-      is_running: true,
-      next_run: '2024-12-01T10:00:00Z',
+      enabled: true,
+      running: true,
+      interval_weeks: 1,
+      is_pipeline_running: false,
       last_run: '2024-12-01T09:00:00Z',
-      interval_minutes: 60,
+      next_run: '2024-12-01T10:00:00Z',
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockStatus,
     });
@@ -225,8 +241,8 @@ describe('Scheduler API', () => {
     const { schedulerAPI } = await import('@/lib/api');
     const result = await schedulerAPI.getStatus();
 
-    expect(result.is_running).toBe(true);
-    expect(result.interval_minutes).toBe(60);
+    expect(result.running).toBe(true);
+    expect(result.interval_weeks).toBe(1);
   });
 
   it('should trigger scheduler', async () => {
@@ -235,7 +251,7 @@ describe('Scheduler API', () => {
       message: 'Scheduler triggered',
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockResponse,
     });
@@ -243,15 +259,15 @@ describe('Scheduler API', () => {
     const { schedulerAPI } = await import('@/lib/api');
     const result = await schedulerAPI.trigger();
 
-    expect(global.fetch).toHaveBeenCalled();
-    const [url, options] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(globalThis.fetch).toHaveBeenCalled();
+    const [url, options] = (globalThis.fetch as jest.Mock).mock.calls[0];
     expect(url).toContain('/scheduler/trigger');
     expect(options.method).toBe('POST');
     expect(result.status).toBe('success');
   });
 
   it('should handle scheduler trigger error', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 503,
       json: async () => ({ detail: 'Scheduler unavailable' }),
@@ -264,13 +280,13 @@ describe('Scheduler API', () => {
 
   it('should get scheduler health', async () => {
     const mockHealth = {
-      status: 'healthy',
-      uptime: 3600,
-      jobs_completed: 100,
-      jobs_failed: 2,
+      healthy: true,
+      enabled: true,
+      next_run: '2024-12-01T10:00:00Z',
+      details: 'All systems operational',
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockHealth,
     });
@@ -278,8 +294,8 @@ describe('Scheduler API', () => {
     const { schedulerAPI } = await import('@/lib/api');
     const result = await schedulerAPI.getHealth();
 
-    expect(result.status).toBe('healthy');
-    expect(result.jobs_completed).toBe(100);
+    expect(result.healthy).toBe(true);
+    expect(result.details).toBe('All systems operational');
   });
 });
 
@@ -291,12 +307,12 @@ describe('Categories API', () => {
 
   it('should fetch category distribution', async () => {
     const mockDistribution = [
-      { category: 'Technology', count: 200, percentage: 40 },
-      { category: 'Business', count: 150, percentage: 30 },
-      { category: 'Politics', count: 100, percentage: 20 },
+      { category: 'Technology', shega_count: 100, addis_insight_count: 100, total: 200 },
+      { category: 'Business', shega_count: 80, addis_insight_count: 70, total: 150 },
+      { category: 'Politics', shega_count: 50, addis_insight_count: 50, total: 100 },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockDistribution,
     });
@@ -306,13 +322,13 @@ describe('Categories API', () => {
 
     expect(Array.isArray(result)).toBe(true);
     expect(result[0]).toHaveProperty('category');
-    expect(result[0]).toHaveProperty('count');
+    expect(result[0]).toHaveProperty('total');
   });
 
   it('should fetch category distribution with site filter', async () => {
-    const mockDistribution = [];
+    const mockDistribution: CategoryDistribution[] = [];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockDistribution,
     });
@@ -320,7 +336,7 @@ describe('Categories API', () => {
     const { categoriesAPI } = await import('@/lib/api');
     await categoriesAPI.getDistribution('shega');
 
-    const fetchCall = (global.fetch as jest.Mock).mock.calls[0][0];
+    const fetchCall = (globalThis.fetch as jest.Mock).mock.calls[0][0];
     expect(fetchCall).toContain('site=shega');
   });
 });
@@ -333,31 +349,37 @@ describe('Topics API - Additional Tests', () => {
 
   it('should fetch topic spikes', async () => {
     const mockSpikes = [
-      { topic: 'AI', date: '2024-01-15', spike_value: 3.5, normal_value: 1.0 },
-      { topic: 'Politics', date: '2024-01-20', spike_value: 2.8, normal_value: 1.2 },
+      { keyword: 'AI', recent_count: 100, previous_count: 20, spike_ratio: 5, is_new: false },
+      { keyword: 'Politics', recent_count: 80, previous_count: 30, spike_ratio: 2.67, is_new: false },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockSpikes,
     });
 
     const { topicsAPI } = await import('@/lib/api');
-    const result = await topicsAPI.getSpikes({ weeks: 4, threshold: 2.0 });
+    const result = await topicsAPI.getSpikes({ weeks: 4, threshold: 2 });
 
     expect(Array.isArray(result)).toBe(true);
-    expect(result[0]).toHaveProperty('topic');
-    expect(result[0]).toHaveProperty('spike_value');
+    expect(result[0]).toHaveProperty('keyword');
+    expect(result[0]).toHaveProperty('spike_ratio');
   });
 
   it('should fetch topic sentiment', async () => {
     const mockSentiment = {
-      topics: [
-        { topic: 'Technology', positive: 0.5, negative: 0.2, neutral: 0.3 },
+      most_positive: [
+        { keyword: 'Technology', count: 50, avg_polarity: 0.5, avg_subjectivity: 0.4 },
+      ],
+      most_negative: [
+        { keyword: 'Politics', count: 30, avg_polarity: -0.3, avg_subjectivity: 0.6 },
+      ],
+      most_subjective: [
+        { keyword: 'Opinion', count: 20, avg_polarity: 0.1, avg_subjectivity: 0.8 },
       ],
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockSentiment,
     });
@@ -365,16 +387,24 @@ describe('Topics API - Additional Tests', () => {
     const { topicsAPI } = await import('@/lib/api');
     const result = await topicsAPI.getSentiment({ limit: 10 });
 
-    expect(result.topics).toBeDefined();
+    expect(result.most_positive).toBeDefined();
   });
 
   it('should fetch topic sentiment distribution', async () => {
-    const mockDistribution = [
-      { topic: 'Tech', sentiment: 'positive', count: 100 },
-      { topic: 'Tech', sentiment: 'negative', count: 20 },
+    const mockDistribution: Array<{
+      keyword: string;
+      total: number;
+      positive: number;
+      negative: number;
+      neutral: number;
+      positive_pct: number;
+      negative_pct: number;
+      neutral_pct: number;
+    }> = [
+      { keyword: 'Tech', total: 120, positive: 70, negative: 30, neutral: 20, positive_pct: 58, negative_pct: 25, neutral_pct: 17 },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockDistribution,
     });
@@ -398,7 +428,7 @@ describe('NLP API - Additional Tests', () => {
       addis_insight: { avg_polarity: 0.1, avg_subjectivity: 0.5 },
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockSentiment,
     });
@@ -412,12 +442,14 @@ describe('NLP API - Additional Tests', () => {
 
   it('should fetch readability summary', async () => {
     const mockReadability = {
-      avg_flesch_reading_ease: 45.5,
-      avg_flesch_kincaid_grade: 12.3,
-      total_analyzed: 500,
+      count: 500,
+      avg_readability: 45.5,
+      avg_sentence_length: 18.5,
+      avg_word_length: 5.2,
+      avg_sentences: 12,
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockReadability,
     });
@@ -425,8 +457,8 @@ describe('NLP API - Additional Tests', () => {
     const { nlpAPI } = await import('@/lib/api');
     const result = await nlpAPI.getReadabilitySummary();
 
-    expect(result.avg_flesch_reading_ease).toBeDefined();
-    expect(result.total_analyzed).toBe(500);
+    expect(result.avg_readability).toBeDefined();
+    expect(result.count).toBe(500);
   });
 
   it('should fetch readability by site', async () => {
@@ -435,7 +467,7 @@ describe('NLP API - Additional Tests', () => {
       addis_insight: { avg_flesch_reading_ease: 45 },
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockReadability,
     });
@@ -449,13 +481,17 @@ describe('NLP API - Additional Tests', () => {
 
   it('should fetch enrichment status', async () => {
     const mockStatus = {
-      total_articles: 1000,
-      enriched_articles: 800,
-      pending_articles: 200,
-      last_enrichment: '2024-01-15T10:00:00Z',
+      total: 1000,
+      enriched: 800,
+      pending: 200,
+      enriched_pct: 80,
+      by_site: {
+        shega: { total: 600, enriched: 500 },
+        addis_insight: { total: 400, enriched: 300 },
+      },
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockStatus,
     });
@@ -463,8 +499,8 @@ describe('NLP API - Additional Tests', () => {
     const { nlpAPI } = await import('@/lib/api');
     const result = await nlpAPI.getEnrichmentStatus();
 
-    expect(result.total_articles).toBe(1000);
-    expect(result.enriched_articles).toBe(800);
+    expect(result.total).toBe(1000);
+    expect(result.enriched).toBe(800);
   });
 });
 
@@ -476,13 +512,15 @@ describe('Sentiment API - Additional Tests', () => {
 
   it('should fetch top positive articles', async () => {
     const mockPositive = {
-      articles: [
-        { title: 'Positive Article 1', polarity: 0.9 },
-        { title: 'Positive Article 2', polarity: 0.85 },
+      shega: [
+        { title: 'Positive Article 1', excerpt: 'Excerpt', posted_date: '2024-01-15', author: 'John', polarity: 0.9, url: 'https://example.com/1' },
+      ],
+      addis_insight: [
+        { title: 'Positive Article 2', excerpt: 'Excerpt 2', posted_date: '2024-01-16', author: 'Jane', polarity: 0.85, url: 'https://example.com/2' },
       ],
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockPositive,
     });
@@ -490,18 +528,19 @@ describe('Sentiment API - Additional Tests', () => {
     const { sentimentAPI } = await import('@/lib/api');
     const result = await sentimentAPI.getTopPositive({ limit: 5 });
 
-    expect(result.articles).toBeDefined();
-    expect(Array.isArray(result.articles)).toBe(true);
+    expect(result.shega).toBeDefined();
+    expect(Array.isArray(result.shega)).toBe(true);
   });
 
   it('should fetch top negative articles', async () => {
     const mockNegative = {
-      articles: [
-        { title: 'Negative Article 1', polarity: -0.8 },
+      shega: [
+        { title: 'Negative Article 1', excerpt: 'Excerpt', posted_date: '2024-01-15', author: null, polarity: -0.8, url: 'https://example.com/3' },
       ],
+      addis_insight: [],
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockNegative,
     });
@@ -509,7 +548,7 @@ describe('Sentiment API - Additional Tests', () => {
     const { sentimentAPI } = await import('@/lib/api');
     const result = await sentimentAPI.getTopNegative({ limit: 5, site: 'shega' });
 
-    expect(result.articles).toBeDefined();
+    expect(result.shega).toBeDefined();
   });
 });
 
@@ -530,7 +569,7 @@ describe('Authors API - Additional Tests', () => {
       },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockAuthors,
     });
@@ -548,7 +587,7 @@ describe('Authors API - Additional Tests', () => {
       { author: 'John Doe', avg_polarity: 0.3, avg_subjectivity: 0.5, article_count: 50 },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockSentiment,
     });
@@ -573,7 +612,7 @@ describe('Keywords API - Additional Tests', () => {
       { keyword: 'machine learning', count: 120, score: 0.88 },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockKeywords,
     });
@@ -594,14 +633,30 @@ describe('Dashboard API - Additional Tests', () => {
 
   it('should fetch dashboard summary', async () => {
     const mockSummary = {
-      total_articles: 1500,
-      articles_this_week: 50,
-      articles_this_month: 200,
-      top_category: 'Technology',
-      top_author: 'John Doe',
+      shega: {
+        total_articles: 800,
+        unique_authors: 50,
+        avg_body_word_count: 600,
+        avg_headline_word_count: 10,
+        avg_readability: 45,
+        avg_sentiment: 0.1,
+      },
+      addis_insight: {
+        total_articles: 700,
+        unique_authors: 40,
+        avg_body_word_count: 550,
+        avg_headline_word_count: 9,
+        avg_readability: 50,
+        avg_sentiment: 0.05,
+      },
+      comparison: {
+        total_articles_diff: 100,
+        unique_authors_diff: 10,
+        avg_body_words_diff: 50,
+      },
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockSummary,
     });
@@ -609,8 +664,8 @@ describe('Dashboard API - Additional Tests', () => {
     const { dashboardAPI } = await import('@/lib/api');
     const result = await dashboardAPI.getSummary();
 
-    expect(result.total_articles).toBe(1500);
-    expect(result.top_category).toBe('Technology');
+    expect(result.shega).toBeDefined();
+    expect(result.comparison).toBeDefined();
   });
 });
 
@@ -629,7 +684,7 @@ describe('Articles API - Additional Tests', () => {
       content: 'Full article content...',
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockArticle,
     });
@@ -647,7 +702,7 @@ describe('Articles API - Additional Tests', () => {
       { _id: '2', title: 'Sample 2', polarity: 0.8 },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockSamples,
     });
@@ -668,7 +723,7 @@ describe('Articles API - Additional Tests', () => {
       total_pages: 0,
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockArticles,
     });
@@ -686,7 +741,7 @@ describe('Articles API - Additional Tests', () => {
       search: 'test',
     });
 
-    const fetchCall = (global.fetch as jest.Mock).mock.calls[0][0];
+    const fetchCall = (globalThis.fetch as jest.Mock).mock.calls[0][0];
     expect(fetchCall).toContain('site=shega');
     expect(fetchCall).toContain('author=John');
     expect(fetchCall).toContain('category=Technology');
@@ -702,20 +757,20 @@ describe('Comparison API - Additional Tests', () => {
   it('should fetch content length comparison', async () => {
     const mockComparison = {
       shega: {
-        avg_word_count: 500,
-        avg_reading_time: 3,
-        min_word_count: 100,
-        max_word_count: 2000,
+        avg_body_words: 500,
+        min_body_words: 100,
+        max_body_words: 2000,
+        count: 100,
       },
       addis_insight: {
-        avg_word_count: 450,
-        avg_reading_time: 2.5,
-        min_word_count: 80,
-        max_word_count: 1800,
+        avg_body_words: 450,
+        min_body_words: 80,
+        max_body_words: 1800,
+        count: 80,
       },
     };
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => mockComparison,
     });
@@ -725,7 +780,7 @@ describe('Comparison API - Additional Tests', () => {
 
     expect(result.shega).toBeDefined();
     expect(result.addis_insight).toBeDefined();
-    expect(result.shega.avg_word_count).toBe(500);
+    expect(result.shega.avg_body_words).toBe(500);
   });
 });
 
@@ -761,7 +816,7 @@ describe('Error Handling', () => {
   });
 
   it('should handle default error message when JSON parsing fails', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 500,
       json: async () => { throw new Error('JSON parse error'); },
@@ -773,7 +828,7 @@ describe('Error Handling', () => {
   });
 
   it('should handle HTTP status error', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 404,
       json: async () => ({}),
@@ -785,7 +840,7 @@ describe('Error Handling', () => {
   });
 
   it('should handle scraping trigger with JSON parse error', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 500,
       json: async () => { throw new Error('Parse error'); },
@@ -797,7 +852,7 @@ describe('Error Handling', () => {
   });
 
   it('should handle scheduler trigger with JSON parse error', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       status: 500,
       json: async () => { throw new Error('Parse error'); },
@@ -816,7 +871,7 @@ describe('Query String Builder', () => {
   });
 
   it('should build correct query string with parameters', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({}),
     });
@@ -824,13 +879,13 @@ describe('Query String Builder', () => {
     const { articlesAPI } = await import('@/lib/api');
     await articlesAPI.getArticles({ page: 1, per_page: 20 });
 
-    const fetchCall = (global.fetch as jest.Mock).mock.calls[0][0];
+    const fetchCall = (globalThis.fetch as jest.Mock).mock.calls[0][0];
     expect(fetchCall).toContain('page=1');
     expect(fetchCall).toContain('per_page=20');
   });
 
   it('should skip undefined and null parameters', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({}),
     });
@@ -838,14 +893,14 @@ describe('Query String Builder', () => {
     const { articlesAPI } = await import('@/lib/api');
     await articlesAPI.getArticles({ page: 1, site: undefined, author: undefined });
 
-    const fetchCall = (global.fetch as jest.Mock).mock.calls[0][0];
+    const fetchCall = (globalThis.fetch as jest.Mock).mock.calls[0][0];
     expect(fetchCall).toContain('page=1');
     expect(fetchCall).not.toContain('site=');
     expect(fetchCall).not.toContain('author=');
   });
 
   it('should return empty query string when no parameters', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({}),
     });
@@ -853,7 +908,7 @@ describe('Query String Builder', () => {
     const { articlesAPI } = await import('@/lib/api');
     await articlesAPI.getArticles({});
 
-    const fetchCall = (global.fetch as jest.Mock).mock.calls[0][0];
+    const fetchCall = (globalThis.fetch as jest.Mock).mock.calls[0][0];
     expect(fetchCall).not.toContain('?');
   });
 });
