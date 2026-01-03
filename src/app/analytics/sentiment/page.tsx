@@ -184,8 +184,8 @@ async function SentimentContent({ site }: { readonly site: SiteFilter }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {topPositive.shega?.slice(0, 3).map((article, i) => (
-                <div key={i} className="rounded-lg border-l-4 border-blue-500 bg-blue-50 p-3 dark:bg-blue-950">
+              {topPositive.shega?.slice(0, 3).map((article) => (
+                <div key={`shega-pos-${article.title}`} className="rounded-lg border-l-4 border-blue-500 bg-blue-50 p-3 dark:bg-blue-950">
                   <p className="font-medium line-clamp-1">{article.title}</p>
                   <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                     <span>Shega</span>
@@ -196,8 +196,8 @@ async function SentimentContent({ site }: { readonly site: SiteFilter }) {
                   </div>
                 </div>
               ))}
-              {topPositive.addis_insight?.slice(0, 2).map((article, i) => (
-                <div key={i} className="rounded-lg border-l-4 border-red-500 bg-red-50 p-3 dark:bg-red-950">
+              {topPositive.addis_insight?.slice(0, 2).map((article) => (
+                <div key={`addis-pos-${article.title}`} className="rounded-lg border-l-4 border-red-500 bg-red-50 p-3 dark:bg-red-950">
                   <p className="font-medium line-clamp-1">{article.title}</p>
                   <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                     <span>Addis Insight</span>
@@ -223,8 +223,8 @@ async function SentimentContent({ site }: { readonly site: SiteFilter }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {topNegative.shega?.slice(0, 3).map((article, i) => (
-                <div key={i} className="rounded-lg border-l-4 border-blue-500 bg-blue-50 p-3 dark:bg-blue-950">
+              {topNegative.shega?.slice(0, 3).map((article) => (
+                <div key={`shega-neg-${article.title}`} className="rounded-lg border-l-4 border-blue-500 bg-blue-50 p-3 dark:bg-blue-950">
                   <p className="font-medium line-clamp-1">{article.title}</p>
                   <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                     <span>Shega</span>
@@ -235,8 +235,8 @@ async function SentimentContent({ site }: { readonly site: SiteFilter }) {
                   </div>
                 </div>
               ))}
-              {topNegative.addis_insight?.slice(0, 2).map((article, i) => (
-                <div key={i} className="rounded-lg border-l-4 border-red-500 bg-red-50 p-3 dark:bg-red-950">
+              {topNegative.addis_insight?.slice(0, 2).map((article) => (
+                <div key={`addis-neg-${article.title}`} className="rounded-lg border-l-4 border-red-500 bg-red-50 p-3 dark:bg-red-950">
                   <p className="font-medium line-clamp-1">{article.title}</p>
                   <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                     <span>Addis Insight</span>
@@ -282,12 +282,14 @@ export default async function SentimentPage({ searchParams }: SentimentPageProps
   );
 }
 
+const SKELETON_CARD_IDS = ['polarity', 'positive', 'neutral', 'negative'] as const;
+
 function SentimentSkeleton() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i}>
+        {SKELETON_CARD_IDS.map((id) => (
+          <Card key={id}>
             <CardHeader className="pb-2">
               <Skeleton className="h-4 w-32" />
             </CardHeader>

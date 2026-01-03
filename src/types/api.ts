@@ -552,3 +552,201 @@ export interface ArticleStatsSummary {
   sites: ArticleStatsSite[];
   total_articles: number;
 }
+
+// =================== NEW TYPES ===================
+
+// Trending Keywords
+export interface TrendingKeyword {
+  keyword: string;
+  recent_count: number;
+  previous_count: number;
+  spike_ratio: number | null;
+  is_new: boolean;
+}
+
+// Topics Treemap
+export interface TopicTreemapItem {
+  name: string;
+  value: number;
+  site?: Site;
+}
+
+// Topics Modeling
+export interface TopicModelCluster {
+  topic_id: number;
+  label: string;
+  keywords: string[];
+  article_count: number;
+}
+
+export interface TopicsModelingResponse {
+  num_topics: number;
+  topics: TopicModelCluster[];
+}
+
+// Topic Spike Timeline
+export interface TopicSpikeTimelineItem {
+  week: string;
+  keyword: string;
+  count: number;
+  spike_intensity: number;
+}
+
+export interface TopicSpikeTimelineResponse {
+  weeks: number;
+  threshold: number;
+  data: TopicSpikeTimelineItem[];
+}
+
+// Sentiment Distribution
+export interface SentimentDistribution {
+  positive: number;
+  negative: number;
+  neutral: number;
+  total: number;
+  positive_pct: number;
+  negative_pct: number;
+  neutral_pct: number;
+}
+
+// Content Length Distribution
+export interface ContentLengthDistributionBin {
+  bin: string;
+  min_words: number;
+  max_words: number;
+  shega: number;
+  addis_insight: number;
+  total: number;
+}
+
+export interface ContentLengthDistribution {
+  bins: ContentLengthDistributionBin[];
+  stats: {
+    total_articles: number;
+    avg_word_count: number;
+  };
+}
+
+// Compare Overview
+export interface CompareOverviewSite {
+  total_articles: number;
+  unique_authors: number;
+  avg_sentiment: number;
+  avg_readability: number;
+  avg_word_count: number;
+  top_keyword: string;
+  coverage_period: {
+    earliest: string;
+    latest: string;
+  };
+}
+
+export interface CompareOverview {
+  shega: CompareOverviewSite;
+  addis_insight: CompareOverviewSite;
+  winner: {
+    articles: Site;
+    sentiment: Site;
+    readability: Site;
+    word_count: Site;
+  };
+}
+
+// Compare Publishing Trends
+export interface ComparePublishingTrendsItem {
+  month: string;
+  shega: number;
+  addis_insight: number;
+}
+
+export interface ComparePublishingTrends {
+  months: number;
+  data: ComparePublishingTrendsItem[];
+}
+
+// Compare Duplication
+export interface DuplicateArticlePair {
+  shega_title: string;
+  addis_title: string;
+  shega_url: string;
+  addis_url: string;
+  similarity_score: number;
+  published_date_shega: string;
+  published_date_addis: string;
+}
+
+export interface CompareDuplication {
+  threshold: number;
+  total_duplicates: number;
+  duplicates: DuplicateArticlePair[];
+}
+
+// Compare Coverage Gaps
+export interface CoverageGapTopic {
+  topic: string;
+  count: number;
+  sample_articles?: string[];
+}
+
+export interface CompareCoverageGaps {
+  shega_exclusive: CoverageGapTopic[];
+  addis_insight_exclusive: CoverageGapTopic[];
+  recommendations: {
+    shega_should_cover: string[];
+    addis_should_cover: string[];
+  };
+}
+
+// Compare Insights
+export interface CompetitiveInsight {
+  category: string;
+  insight: string;
+  winner?: Site | 'tie';
+  metric?: string;
+  shega_value?: number | string;
+  addis_value?: number | string;
+}
+
+export interface CompareInsights {
+  generated_at: string;
+  insights: CompetitiveInsight[];
+  summary: {
+    shega_wins: number;
+    addis_wins: number;
+    ties: number;
+  };
+}
+
+// Categories Top Topics
+export interface CategoryTopTopic {
+  category: string;
+  topics: Array<{
+    topic: string;
+    count: number;
+  }>;
+}
+
+// Keywords Comprehensive
+export interface ComprehensiveKeyword {
+  keyword: string;
+  total_count: number;
+  headline_count: number;
+  body_count: number;
+  sites: Site[];
+}
+
+export interface KeywordsComprehensive {
+  keywords: ComprehensiveKeyword[];
+  stats: {
+    total_unique: number;
+    headline_only: number;
+    body_only: number;
+    both: number;
+  };
+}
+
+// Keywords by Site
+export interface KeywordsBySite {
+  shega: TopKeyword[];
+  addis_insight: TopKeyword[];
+}

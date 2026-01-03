@@ -152,6 +152,16 @@ export const categoriesAPI = {
     fetchAPI<API.CategoryDistribution[]>(
       `${endpoints.categoriesDistribution}${buildQuery({ site })}`
     ),
+
+  getTopTopics: (params: { limit?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.CategoryTopTopic[]>(
+      `${endpoints.categoriesTopTopics}${buildQuery(params)}`
+    ),
+
+  getTopicComparison: (site?: API.Site) => 
+    fetchAPI<Record<string, unknown>>(
+      `${endpoints.categoriesTopicComparison}${buildQuery({ site })}`
+    ),
 };
 
 // ============= Keywords API =============
@@ -174,6 +184,23 @@ export const keywordsAPI = {
   getBody: (params: { limit?: number; site?: API.Site } = {}) => 
     fetchAPI<API.BodyKeywordsResponse>(
       `${endpoints.bodyKeywords}${buildQuery(params)}`
+    ),
+
+  getComprehensive: (params: { min_count?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.KeywordsComprehensive>(
+      `${endpoints.keywordsComprehensive}${buildQuery(params)}`
+    ),
+
+  getBySite: (limit?: number) => 
+    fetchAPI<API.KeywordsBySite>(
+      `${endpoints.keywordsBySite}${buildQuery({ limit })}`
+    ),
+
+  getTrending: (params: { weeks?: number; threshold?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.TrendingKeyword[]>(
+      `${endpoints.keywordsTrending}${buildQuery(params)}`,
+      {},
+      config.shortRevalidate
     ),
 };
 
@@ -200,6 +227,23 @@ export const topicsAPI = {
     fetchAPI<API.TopicSentimentDistribution[]>(
       `${endpoints.topicsSentimentDistribution}${buildQuery(params)}`
     ),
+
+  getModeling: (params: { num_topics?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.TopicsModelingResponse>(
+      `${endpoints.topicsModeling}${buildQuery(params)}`
+    ),
+
+  getTreemap: (params: { limit?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.TopicTreemapItem[]>(
+      `${endpoints.topicsTreemap}${buildQuery(params)}`
+    ),
+
+  getSpikeTimeline: (params: { weeks?: number; threshold?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.TopicSpikeTimelineResponse>(
+      `${endpoints.topicsSpikeTimeline}${buildQuery(params)}`,
+      {},
+      config.shortRevalidate
+    ),
 };
 
 // ============= Sentiment API =============
@@ -217,6 +261,11 @@ export const sentimentAPI = {
   getTopNegative: (params: { limit?: number; site?: API.Site } = {}) => 
     fetchAPI<API.TopSentimentResponse>(
       `${endpoints.topNegative}${buildQuery(params)}`
+    ),
+
+  getDistribution: (site?: API.Site) => 
+    fetchAPI<API.SentimentDistribution>(
+      `${endpoints.sentimentDistribution}${buildQuery({ site })}`
     ),
 };
 
@@ -237,6 +286,21 @@ export const nlpAPI = {
   } = {}) => 
     fetchAPI<API.EntityItem[]>(
       `${endpoints.nlpTopEntities}${buildQuery(params)}`
+    ),
+
+  getPeople: (params: { limit?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.EntityItem[]>(
+      `${endpoints.nlpEntitiesPeople}${buildQuery(params)}`
+    ),
+
+  getOrganizations: (params: { limit?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.EntityItem[]>(
+      `${endpoints.nlpEntitiesOrganizations}${buildQuery(params)}`
+    ),
+
+  getLocations: (params: { limit?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.EntityItem[]>(
+      `${endpoints.nlpEntitiesLocations}${buildQuery(params)}`
     ),
 
   getReadabilitySummary: (site?: API.Site) => 
@@ -278,6 +342,32 @@ export const comparisonAPI = {
 
   getContentLength: () => 
     fetchAPI<API.ContentLengthComparison>(endpoints.contentLengthComparison),
+
+  getContentLengthDistribution: (params: { bins?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.ContentLengthDistribution>(
+      `${endpoints.contentLengthDistribution}${buildQuery(params)}`
+    ),
+
+  getOverview: () => 
+    fetchAPI<API.CompareOverview>(endpoints.compareOverview),
+
+  getPublishingTrends: (months?: number) => 
+    fetchAPI<API.ComparePublishingTrends>(
+      `${endpoints.comparePublishingTrends}${buildQuery({ months })}`
+    ),
+
+  getDuplication: (threshold?: number) => 
+    fetchAPI<API.CompareDuplication>(
+      `${endpoints.compareDuplication}${buildQuery({ threshold })}`
+    ),
+
+  getCoverageGaps: (limit?: number) => 
+    fetchAPI<API.CompareCoverageGaps>(
+      `${endpoints.compareCoverageGaps}${buildQuery({ limit })}`
+    ),
+
+  getInsights: () => 
+    fetchAPI<API.CompareInsights>(endpoints.compareInsights),
 };
 
 // ============= Scraping API =============

@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import { nlpAPI } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChartComponent } from '@/components/charts/bar-chart';
 import { DonutChart } from '@/components/charts/donut-chart';

@@ -36,27 +36,39 @@ export const endpoints = {
 
   // Categories
   categoriesDistribution: '/analytics/categories/distribution',
+  categoriesTopTopics: '/analytics/categories/top-topics',
+  categoriesTopicComparison: '/analytics/categories/topic-comparison',
 
   // Keywords
   topKeywords: '/analytics/keywords/top',
   headlineKeywords: '/analytics/keywords/headlines',
   bodyKeywords: '/analytics/keywords/body',
+  keywordsComprehensive: '/analytics/keywords/comprehensive',
+  keywordsBySite: '/analytics/keywords/by-site',
+  keywordsTrending: '/analytics/keywords/trending',
 
   // Topics
   topicsEvolution: '/analytics/topics/evolution',
   topicsSpikes: '/analytics/topics/spikes',
   topicsSentiment: '/analytics/topics/sentiment',
   topicsSentimentDistribution: '/analytics/topics/sentiment-distribution',
+  topicsModeling: '/analytics/topics/modeling',
+  topicsTreemap: '/analytics/topics/treemap',
+  topicsSpikeTimeline: '/analytics/topics/spike-timeline',
 
   // Sentiment
   sentimentTimeline: '/analytics/sentiment/timeline',
   topPositive: '/analytics/sentiment/top-positive',
   topNegative: '/analytics/sentiment/top-negative',
+  sentimentDistribution: '/analytics/sentiment/distribution',
 
   // NLP
   nlpSentimentSummary: '/analytics/nlp/sentiment/summary',
   nlpSentimentBySite: '/analytics/nlp/sentiment/by-site',
   nlpTopEntities: '/analytics/nlp/entities/top',
+  nlpEntitiesPeople: '/analytics/nlp/entities/people',
+  nlpEntitiesOrganizations: '/analytics/nlp/entities/organizations',
+  nlpEntitiesLocations: '/analytics/nlp/entities/locations',
   nlpReadabilitySummary: '/analytics/nlp/readability/summary',
   nlpReadabilityBySite: '/analytics/nlp/readability/by-site',
   nlpExtractedKeywords: '/analytics/nlp/keywords/extracted',
@@ -69,9 +81,15 @@ export const endpoints = {
   // Comparison
   compareKeywords: '/analytics/compare/keywords',
   compareEntities: '/analytics/compare/entities',
+  compareOverview: '/analytics/compare/overview',
+  comparePublishingTrends: '/analytics/compare/publishing-trends',
+  compareDuplication: '/analytics/compare/duplication',
+  compareCoverageGaps: '/analytics/compare/coverage-gaps',
+  compareInsights: '/analytics/compare/insights',
 
   // Content
   contentLengthComparison: '/analytics/content-length/comparison',
+  contentLengthDistribution: '/analytics/content-length/distribution',
 
   // Scraping
   scrapeTrigger: '/scraping/trigger',

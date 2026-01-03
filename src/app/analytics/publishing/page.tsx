@@ -36,7 +36,7 @@ async function PublishingContent() {
   // Transform weekday data
   const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const weekdayData = publishingTrends.by_weekday.map((item) => ({
-    day: weekdays[parseInt(item.value)]?.slice(0, 3) || item.value,
+    day: weekdays[Number.parseInt(item.value, 10)]?.slice(0, 3) || item.value,
     Shega: item.shega,
     'Addis Insight': item.addis_insight,
   }));
@@ -44,7 +44,7 @@ async function PublishingContent() {
   // Transform monthly data
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const monthlyData = publishingTrends.by_month.map((item) => ({
-    month: months[parseInt(item.value) - 1] || item.value,
+    month: months[Number.parseInt(item.value, 10) - 1] || item.value,
     Shega: item.shega,
     'Addis Insight': item.addis_insight,
   }));
@@ -95,7 +95,7 @@ async function PublishingContent() {
             <Calendar className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{weekdays[parseInt(peakShegaDay.value)]?.slice(0, 3) || 'N/A'}</div>
+            <div className="text-2xl font-bold">{weekdays[Number.parseInt(peakShegaDay.value, 10)]?.slice(0, 3) || 'N/A'}</div>
             <p className="text-xs text-muted-foreground">{peakShegaDay.shega} articles</p>
           </CardContent>
         </Card>
@@ -105,7 +105,7 @@ async function PublishingContent() {
             <Calendar className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{weekdays[parseInt(peakAddisDay.value)]?.slice(0, 3) || 'N/A'}</div>
+            <div className="text-2xl font-bold">{weekdays[Number.parseInt(peakAddisDay.value, 10)]?.slice(0, 3) || 'N/A'}</div>
             <p className="text-xs text-muted-foreground">{peakAddisDay.addis_insight} articles</p>
           </CardContent>
         </Card>
@@ -331,12 +331,14 @@ export default function PublishingPage() {
   );
 }
 
+const SKELETON_CARD_IDS = ['skeleton-peak-1', 'skeleton-peak-2', 'skeleton-peak-3', 'skeleton-peak-4'] as const;
+
 function PublishingSkeleton() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <Card key={i}>
+        {SKELETON_CARD_IDS.map((id) => (
+          <Card key={id}>
             <CardHeader className="pb-2">
               <Skeleton className="h-4 w-24" />
             </CardHeader>

@@ -8,9 +8,22 @@ import { BarChartComponent } from '@/components/charts/bar-chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, Sparkles, Calendar, AlertTriangle } from 'lucide-react';
 import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
-import type { Site } from '@/types/api';
+import type { Site, TopicSpike } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
+
+// Helper functions to avoid nested ternaries
+function getSpikeVariant(spike: TopicSpike): 'default' | 'destructive' | 'secondary' {
+  if (spike.is_new) return 'default';
+  if ((spike.spike_ratio ?? 0) > 2) return 'destructive';
+  return 'secondary';
+}
+
+function getSpikeLabel(spike: TopicSpike): string {
+  if (spike.is_new) return 'New';
+  if (spike.spike_ratio) return `${spike.spike_ratio.toFixed(1)}x spike`;
+  return 'N/A';
+}
 
 interface SearchParams {
   site?: string;
@@ -160,8 +173,8 @@ async function TopicsContent({ site }: { readonly site: SiteFilter }) {
                       </p>
                     </div>
                     <div className="text-right">
-                      <Badge variant={spike.is_new ? 'default' : (spike.spike_ratio ?? 0) > 2 ? 'destructive' : 'secondary'}>
-                        {spike.is_new ? 'New' : spike.spike_ratio ? `${spike.spike_ratio.toFixed(1)}x spike` : 'N/A'}
+                      <Badge variant={getSpikeVariant(spike)}>
+                        {getSpikeLabel(spike)}
                       </Badge>
                       <p className="text-xs text-muted-foreground mt-1">
                         {spike.recent_count} recent articles
