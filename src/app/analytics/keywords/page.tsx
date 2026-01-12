@@ -264,20 +264,20 @@ async function KeywordsContent({ site }: { readonly site: SiteFilter }) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <KeywordStats 
                   label="Articles Analyzed" 
-                  value={headlineStats.articles.toLocaleString()} 
+                  value={headlineStats?.articles?.toLocaleString() ?? '0'} 
                 />
                 <KeywordStats 
                   label="Unique Words" 
-                  value={headlineStats.uniqueWords.toLocaleString()} 
+                  value={headlineStats?.uniqueWords?.toLocaleString() ?? '0'} 
                 />
                 <KeywordStats 
                   label="Top Keyword" 
                   value={headlineKeywords[0]?.keyword || '-'} 
-                  subtext={headlineKeywords[0] ? `${headlineKeywords[0].count} occurrences` : undefined}
+                  subtext={headlineKeywords[0]?.count ? `${headlineKeywords[0].count} occurrences` : undefined}
                 />
                 <KeywordStats 
                   label="Overlap" 
-                  value={`${headlineData.comparison.overlap_percentage.toFixed(1)}%`} 
+                  value={`${headlineData?.comparison?.overlap_percentage?.toFixed(1) ?? '0'}%`} 
                   subtext="Between sites"
                 />
               </div>
@@ -304,20 +304,20 @@ async function KeywordsContent({ site }: { readonly site: SiteFilter }) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <KeywordStats 
                   label="Articles with Keywords" 
-                  value={bodyStats.articles.toLocaleString()} 
+                  value={bodyStats?.articles?.toLocaleString() ?? '0'} 
                 />
                 <KeywordStats 
                   label="Unique Keywords" 
-                  value={bodyStats.uniqueWords.toLocaleString()} 
+                  value={bodyStats?.uniqueWords?.toLocaleString() ?? '0'} 
                 />
                 <KeywordStats 
                   label="Top Keyword" 
                   value={bodyKeywords[0]?.keyword || '-'} 
-                  subtext={bodyKeywords[0] ? `TF-IDF: ${bodyKeywords[0].tfidf_score.toFixed(4)}` : undefined}
+                  subtext={bodyKeywords[0]?.tfidf_score ? `TF-IDF: ${bodyKeywords[0].tfidf_score.toFixed(4)}` : undefined}
                 />
                 <KeywordStats 
                   label="Overlap" 
-                  value={`${bodyData.comparison.overlap_percentage.toFixed(1)}%`} 
+                  value={`${bodyData?.comparison?.overlap_percentage?.toFixed(1) ?? '0'}%`} 
                   subtext="Between sites"
                 />
               </div>
@@ -385,18 +385,18 @@ async function KeywordsContent({ site }: { readonly site: SiteFilter }) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <KeywordStats 
                   label="Total Trending" 
-                  value={trendingKeywords?.length ?? 0}
+                  value={Array.isArray(trendingKeywords) ? trendingKeywords.length : 0}
                   subtext="Spiking keywords"
                 />
                 <KeywordStats 
                   label="New Keywords" 
-                  value={trendingKeywords?.filter((k: API.TrendingKeyword) => k.is_new).length ?? 0}
+                  value={Array.isArray(trendingKeywords) ? trendingKeywords.filter((k: API.TrendingKeyword) => k.is_new).length : 0}
                   subtext="First time appearing"
                 />
                 <KeywordStats 
                   label="Avg Spike Ratio" 
                   value={
-                    trendingKeywords?.length > 0
+                    Array.isArray(trendingKeywords) && trendingKeywords.length > 0
                       ? (trendingKeywords.reduce((acc: number, k: API.TrendingKeyword) => acc + (k.spike_ratio ?? 0), 0) / 
                           trendingKeywords.filter((k: API.TrendingKeyword) => k.spike_ratio !== null).length).toFixed(1) + 'x'
                       : 'N/A'
@@ -406,7 +406,7 @@ async function KeywordsContent({ site }: { readonly site: SiteFilter }) {
                 <KeywordStats 
                   label="Top Spike" 
                   value={
-                    trendingKeywords?.length > 0
+                    Array.isArray(trendingKeywords) && trendingKeywords.length > 0
                       ? Math.max(...trendingKeywords.map((k: API.TrendingKeyword) => k.spike_ratio ?? 0)).toFixed(1) + 'x'
                       : 'N/A'
                   }
@@ -415,7 +415,7 @@ async function KeywordsContent({ site }: { readonly site: SiteFilter }) {
               </div>
 
               {/* Trending Keywords List */}
-              {trendingKeywords && trendingKeywords.length > 0 ? (
+              {Array.isArray(trendingKeywords) && trendingKeywords.length > 0 ? (
                 <div className="space-y-3">
                   {trendingKeywords.slice(0, 20).map((kw: API.TrendingKeyword) => (
                     <div 

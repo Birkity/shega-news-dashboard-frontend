@@ -34,10 +34,12 @@ interface CustomTooltipProps {
 function ProductivityTooltip({ active, payload, label, granularity }: CustomTooltipProps) {
   const formatTooltipDate = (dateStr: string) => {
     const date = new Date(dateStr);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     if (granularity === 'month') {
-      return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      const year = date.getFullYear().toString().slice(-2);
+      return `${monthNames[date.getMonth()]} ${year}`;
     }
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `${monthNames[date.getMonth()]} ${date.getDate()}`;
   };
 
   if (active && payload && payload.length > 0 && label) {
@@ -88,10 +90,12 @@ export function AuthorProductivityChart({ author, site }: AuthorProductivityChar
 
   const formatDate = useCallback((dateStr: string) => {
     const date = new Date(dateStr);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     if (granularity === 'month') {
-      return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      const year = date.getFullYear().toString().slice(-2);
+      return `${monthNames[date.getMonth()]} ${year}`;
     }
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `${monthNames[date.getMonth()]} ${date.getDate()}`;
   }, [granularity]);
 
   if (loading) {

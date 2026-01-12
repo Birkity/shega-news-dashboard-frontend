@@ -27,7 +27,9 @@ function getImpactBadgeVariant(impact: string): 'default' | 'secondary' | 'destr
 }
 
 // Helper function for insight category icons
-function getInsightIcon(category: string) {
+function getInsightIcon(category?: string) {
+  if (!category) return <Lightbulb className="h-4 w-4" />;
+  
   const lowerCategory = category.toLowerCase();
   switch (lowerCategory) {
     case 'volume':
@@ -83,26 +85,26 @@ async function ComparisonContent() {
   })) ?? [];
 
   // Transform shared keyword comparison data for chart
-  const keywordData = keywordComparison.shared.slice(0, 15).map((kw) => ({
+  const keywordData = (keywordComparison?.shared ?? []).slice(0, 15).map((kw) => ({
     keyword: kw.keyword.length > 15 ? `${kw.keyword.slice(0, 15)}...` : kw.keyword,
     Shega: kw.shega_count,
     'Addis Insight': kw.addis_count,
   }));
 
   // Entity comparison - shared entities for chart
-  const sharedEntityData = entityComparison.shared.slice(0, 10).map(e => ({
+  const sharedEntityData = (entityComparison?.shared ?? []).slice(0, 10).map(e => ({
     entity: e.entity.length > 12 ? `${e.entity.slice(0, 12)}...` : e.entity,
     Shega: e.shega_count,
     'Addis Insight': e.addis_count,
   }));
 
   // Calculate differences
-  const shegaArticles = dashboardSummary.shega.total_articles;
-  const addisArticles = dashboardSummary.addis_insight.total_articles;
+  const shegaArticles = dashboardSummary?.shega?.total_articles ?? 0;
+  const addisArticles = dashboardSummary?.addis_insight?.total_articles ?? 0;
   const articleDiff = shegaArticles - addisArticles;
   const articleDiffPercent = addisArticles > 0 ? ((articleDiff / addisArticles) * 100).toFixed(1) : 0;
 
-  const avgLengthDiff = contentLengthComparison.shega.avg_body_words - contentLengthComparison.addis_insight.avg_body_words;
+  const avgLengthDiff = (contentLengthComparison?.shega?.avg_body_words ?? 0) - (contentLengthComparison?.addis_insight?.avg_body_words ?? 0);
 
   return (
     <div className="space-y-6">
@@ -140,7 +142,7 @@ async function ComparisonContent() {
             <div className="flex items-center justify-between">
               <div className="text-center">
                 <p className="text-2xl font-bold text-blue-600">
-                  {contentLengthComparison.shega.avg_body_words.toFixed(0)}
+                  {(contentLengthComparison?.shega?.avg_body_words ?? 0).toFixed(0)}
                 </p>
                 <p className="text-xs text-muted-foreground">Shega</p>
               </div>
@@ -150,7 +152,7 @@ async function ComparisonContent() {
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-red-600">
-                  {contentLengthComparison.addis_insight.avg_body_words.toFixed(0)}
+                  {(contentLengthComparison?.addis_insight?.avg_body_words ?? 0).toFixed(0)}
                 </p>
                 <p className="text-xs text-muted-foreground">Addis Insight</p>
               </div>
@@ -167,7 +169,7 @@ async function ComparisonContent() {
             <div className="flex items-center justify-between">
               <div className="text-center">
                 <p className="text-2xl font-bold text-blue-600">
-                  {contentLengthComparison.shega.max_body_words.toLocaleString()}
+                  {(contentLengthComparison?.shega?.max_body_words ?? 0).toLocaleString()}
                 </p>
                 <p className="text-xs text-muted-foreground">Shega</p>
               </div>
@@ -176,7 +178,7 @@ async function ComparisonContent() {
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-red-600">
-                  {contentLengthComparison.addis_insight.max_body_words.toLocaleString()}
+                  {(contentLengthComparison?.addis_insight?.max_body_words ?? 0).toLocaleString()}
                 </p>
                 <p className="text-xs text-muted-foreground">Addis Insight</p>
               </div>
@@ -193,7 +195,7 @@ async function ComparisonContent() {
             <div className="flex items-center justify-between">
               <div className="text-center">
                 <p className="text-2xl font-bold text-blue-600">
-                  {contentLengthComparison.shega.min_body_words}
+                  {contentLengthComparison?.shega?.min_body_words ?? 0}
                 </p>
                 <p className="text-xs text-muted-foreground">Shega</p>
               </div>
@@ -202,7 +204,7 @@ async function ComparisonContent() {
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-red-600">
-                  {contentLengthComparison.addis_insight.min_body_words}
+                  {contentLengthComparison?.addis_insight?.min_body_words ?? 0}
                 </p>
                 <p className="text-xs text-muted-foreground">Addis Insight</p>
               </div>
@@ -341,7 +343,7 @@ async function ComparisonContent() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {keywordComparison.shega_only.slice(0, 15).map((kw) => (
+              {(keywordComparison?.shega_only ?? []).slice(0, 15).map((kw) => (
                 <Badge
                   key={kw.keyword}
                   variant="secondary"
@@ -351,7 +353,7 @@ async function ComparisonContent() {
                   <span className="ml-1 opacity-60">({kw.count})</span>
                 </Badge>
               ))}
-              {keywordComparison.shega_only.length === 0 && (
+              {(keywordComparison?.shega_only?.length ?? 0) === 0 && (
                 <p className="text-sm text-muted-foreground">No unique keywords for Shega</p>
               )}
             </div>
@@ -368,7 +370,7 @@ async function ComparisonContent() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {keywordComparison.addis_insight_only.slice(0, 15).map((kw) => (
+              {(keywordComparison?.addis_insight_only ?? []).slice(0, 15).map((kw) => (
                 <Badge
                   key={kw.keyword}
                   variant="secondary"
@@ -378,7 +380,7 @@ async function ComparisonContent() {
                   <span className="ml-1 opacity-60">({kw.count})</span>
                 </Badge>
               ))}
-              {keywordComparison.addis_insight_only.length === 0 && (
+              {(keywordComparison?.addis_insight_only?.length ?? 0) === 0 && (
                 <p className="text-sm text-muted-foreground">No unique keywords for Addis Insight</p>
               )}
             </div>
@@ -428,25 +430,25 @@ async function ComparisonContent() {
             <div className="grid gap-4 mb-6 md:grid-cols-3">
               <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20">
                 <p className="text-2xl font-bold text-blue-600">
-                  {insights.summary.shega_wins}
+                  {insights?.summary?.shega_wins ?? 0}
                 </p>
                 <p className="text-sm text-muted-foreground">Shega Wins</p>
               </div>
               <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20">
                 <p className="text-2xl font-bold text-green-600">
-                  {insights.summary.addis_wins}
+                  {insights?.summary?.addis_wins ?? 0}
                 </p>
                 <p className="text-sm text-muted-foreground">Addis Wins</p>
               </div>
               <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-900/20">
                 <p className="text-2xl font-bold text-gray-600">
-                  {insights.summary.ties}
+                  {insights?.summary?.ties ?? 0}
                 </p>
                 <p className="text-sm text-muted-foreground">Ties</p>
               </div>
             </div>
             <div className="space-y-4">
-              {insights.insights.slice(0, 5).map((insight: API.CompetitiveInsight, index: number) => (
+              {(insights?.insights ?? []).slice(0, 5).map((insight: API.CompetitiveInsight, index: number) => (
                 <div key={`insight-${insight.category}-${index}`} className="p-4 rounded-lg border hover:shadow-md transition-shadow">
                   <div className="flex items-start gap-3">
                     <div className="p-2 rounded-full bg-primary/10 text-primary">

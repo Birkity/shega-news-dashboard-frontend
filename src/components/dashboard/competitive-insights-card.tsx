@@ -9,7 +9,9 @@ interface CompetitiveInsightsCardProps {
 }
 
 // Helper function for insight category icons
-function getCategoryIcon(category: string) {
+function getCategoryIcon(category?: string) {
+  if (!category) return <Lightbulb className="h-4 w-4" />;
+  
   switch (category.toLowerCase()) {
     case 'volume': 
     case 'articles': return <FileText className="h-4 w-4" />;
@@ -33,6 +35,10 @@ function getWinnerBadge(winner?: API.Site | 'tie') {
 }
 
 export function CompetitiveInsightsCard({ insights }: CompetitiveInsightsCardProps) {
+  if (!insights?.insights?.length) {
+    return null;
+  }
+
   const topInsights = insights.insights.slice(0, 4);
   
   return (
@@ -48,16 +54,18 @@ export function CompetitiveInsightsCard({ insights }: CompetitiveInsightsCardPro
               AI-generated insights from Shega vs Addis Insight analysis
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-blue-600">
-              <Trophy className="h-3 w-3 mr-1" />
-              Shega: {insights.summary.shega_wins}
-            </Badge>
-            <Badge variant="outline" className="text-green-600">
-              <Trophy className="h-3 w-3 mr-1" />
-              Addis: {insights.summary.addis_wins}
-            </Badge>
-          </div>
+          {insights.summary && (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-blue-600">
+                <Trophy className="h-3 w-3 mr-1" />
+                Shega: {insights.summary.shega_wins}
+              </Badge>
+              <Badge variant="outline" className="text-green-600">
+                <Trophy className="h-3 w-3 mr-1" />
+                Addis: {insights.summary.addis_wins}
+              </Badge>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent>

@@ -66,8 +66,8 @@ export async function DashboardOverview({ site }: DashboardOverviewProps) {
   if (site !== 'all') {
     const siteData = site === 'shega' ? data.summary?.shega : data.summary?.addis_insight;
     const siteCount = site === 'shega' 
-      ? data.overview?.article_count.shega_count 
-      : data.overview?.article_count.addis_insight_count;
+      ? data.overview?.article_count?.shega_count 
+      : data.overview?.article_count?.addis_insight_count;
     const siteSentiment = site === 'shega' 
       ? data.sentimentBySite?.shega 
       : data.sentimentBySite?.addis_insight;
@@ -140,17 +140,17 @@ export async function DashboardOverview({ site }: DashboardOverviewProps) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <ComparisonKPICard
           title="Total Articles"
-          shegaValue={formatNumber(data.overview?.article_count.shega_count)}
-          addisValue={formatNumber(data.overview?.article_count.addis_insight_count)}
-          difference={data.overview?.article_count.percentage_difference}
+          shegaValue={formatNumber(data.overview?.article_count?.shega_count)}
+          addisValue={formatNumber(data.overview?.article_count?.addis_insight_count)}
+          difference={data.overview?.article_count?.percentage_difference}
           icon="newspaper"
         />
         
         <ComparisonKPICard
           title="Unique Authors"
-          shegaValue={formatNumber(data.summary?.shega.unique_authors)}
-          addisValue={formatNumber(data.summary?.addis_insight.unique_authors)}
-          difference={data.summary ? 
+          shegaValue={formatNumber(data.summary?.shega?.unique_authors)}
+          addisValue={formatNumber(data.summary?.addis_insight?.unique_authors)}
+          difference={data.summary?.shega?.unique_authors && data.summary?.addis_insight?.unique_authors ? 
             ((data.summary.shega.unique_authors - data.summary.addis_insight.unique_authors) / 
               data.summary.addis_insight.unique_authors * 100) : undefined}
           icon="users"
@@ -158,15 +158,15 @@ export async function DashboardOverview({ site }: DashboardOverviewProps) {
         
         <ComparisonKPICard
           title="Avg Word Count"
-          shegaValue={formatDecimal(data.summary?.shega.avg_body_word_count)}
-          addisValue={formatDecimal(data.summary?.addis_insight.avg_body_word_count)}
+          shegaValue={formatDecimal(data.summary?.shega?.avg_body_word_count)}
+          addisValue={formatDecimal(data.summary?.addis_insight?.avg_body_word_count)}
           icon="fileText"
         />
         
         <ComparisonKPICard
           title="Avg Readability"
-          shegaValue={formatDecimal(data.summary?.shega.avg_readability)}
-          addisValue={formatDecimal(data.summary?.addis_insight.avg_readability)}
+          shegaValue={formatDecimal(data.summary?.shega?.avg_readability)}
+          addisValue={formatDecimal(data.summary?.addis_insight?.avg_readability)}
           icon="gauge"
         />
       </div>
@@ -188,7 +188,7 @@ export async function DashboardOverview({ site }: DashboardOverviewProps) {
       </div>
 
       {/* Competitive Insights Row - Only shown in comparison view */}
-      {data.insights && data.insights.insights.length > 0 && (
+      {data.insights?.insights?.length && (
         <CompetitiveInsightsCard insights={data.insights} />
       )}
     </div>

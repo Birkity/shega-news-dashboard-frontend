@@ -36,24 +36,24 @@ async function SentimentContent({ site }: { readonly site: SiteFilter }) {
     );
   }
 
-  const timelineData = timeline.map((item) => ({
+  const timelineData = timeline?.map((item) => ({
     month: item.month,
-    shega_polarity: item.shega.avg_polarity,
-    addis_polarity: item.addis_insight.avg_polarity,
-  }));
+    shega_polarity: item.shega?.avg_polarity ?? 0,
+    addis_polarity: item.addis_insight?.avg_polarity ?? 0,
+  })) ?? [];
 
   const sentimentComparisonData = [
     {
       site: 'Shega',
-      positive: sentimentBySite.shega.positive,
-      neutral: sentimentBySite.shega.neutral,
-      negative: sentimentBySite.shega.negative,
+      positive: sentimentBySite?.shega?.positive ?? 0,
+      neutral: sentimentBySite?.shega?.neutral ?? 0,
+      negative: sentimentBySite?.shega?.negative ?? 0,
     },
     {
       site: 'Addis Insight',
-      positive: sentimentBySite.addis_insight.positive,
-      neutral: sentimentBySite.addis_insight.neutral,
-      negative: sentimentBySite.addis_insight.negative,
+      positive: sentimentBySite?.addis_insight?.positive ?? 0,
+      neutral: sentimentBySite?.addis_insight?.neutral ?? 0,
+      negative: sentimentBySite?.addis_insight?.negative ?? 0,
     },
   ];
 
@@ -68,10 +68,10 @@ async function SentimentContent({ site }: { readonly site: SiteFilter }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(sentimentBySite.shega.avg_polarity * 100).toFixed(1)}%
+              {((sentimentBySite?.shega?.avg_polarity ?? 0) * 100).toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground">
-              {sentimentBySite.shega.positive_pct.toFixed(1)}% positive articles
+              {(sentimentBySite?.shega?.positive_pct ?? 0).toFixed(1)}% positive articles
             </p>
           </CardContent>
         </Card>
@@ -83,10 +83,10 @@ async function SentimentContent({ site }: { readonly site: SiteFilter }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(sentimentBySite.addis_insight.avg_polarity * 100).toFixed(1)}%
+              {((sentimentBySite?.addis_insight?.avg_polarity ?? 0) * 100).toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground">
-              {sentimentBySite.addis_insight.positive_pct.toFixed(1)}% positive articles
+              {(sentimentBySite?.addis_insight?.positive_pct ?? 0).toFixed(1)}% positive articles
             </p>
           </CardContent>
         </Card>
@@ -98,7 +98,7 @@ async function SentimentContent({ site }: { readonly site: SiteFilter }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(sentimentBySite.shega.avg_subjectivity * 100).toFixed(1)}%
+              {((sentimentBySite?.shega?.avg_subjectivity ?? 0) * 100).toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground">
               Average across all articles
@@ -113,7 +113,7 @@ async function SentimentContent({ site }: { readonly site: SiteFilter }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(sentimentBySite.addis_insight.avg_subjectivity * 100).toFixed(1)}%
+              {((sentimentBySite?.addis_insight?.avg_subjectivity ?? 0) * 100).toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground">
               Average across all articles

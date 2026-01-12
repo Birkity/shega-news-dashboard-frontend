@@ -190,7 +190,7 @@ export function AuthorKeywordsCard({ author }: AuthorKeywordsCardProps) {
     );
   }
 
-  if (!data || (data.meta_keywords.length === 0 && (!data.nlp_keywords || data.nlp_keywords.length === 0))) {
+  if (!data || (!data.meta_keywords?.length && !data.nlp_keywords?.length)) {
     // Determine the site from the data
     const isAddisInsight = data?.stats?.sites?.includes('addis_insight');
     

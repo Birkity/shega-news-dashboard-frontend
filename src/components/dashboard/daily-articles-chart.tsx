@@ -17,14 +17,22 @@ function getSiteCount(item: DailyArticle, site?: 'shega' | 'addis_insight'): num
 }
 
 export function DailyArticlesChart({ data, site }: DailyArticlesChartProps) {
-  // Format the data for the chart
-  const chartData = data.map((item) => ({
-    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    shega: item.shega,
-    addis_insight: item.addis_insight,
-    // For single site view, just show the selected site's data
-    count: getSiteCount(item, site),
-  }));
+  // Format the data for the chart - use consistent formatting to avoid hydration issues
+  const chartData = data.map((item) => {
+    // Use a simple date string that's consistent between server and client
+    const dateStr = item.date.split('T')[0]; // Get YYYY-MM-DD part
+    const [, month, day] = dateStr.split('-');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const formattedDate = `${monthNames[Number.parseInt(month, 10) - 1]} ${Number.parseInt(day, 10)}`;
+    
+    return {
+      date: formattedDate,
+      shega: item.shega,
+      addis_insight: item.addis_insight,
+      // For single site view, just show the selected site's data
+      count: getSiteCount(item, site),
+    };
+  });
 
   const formatDate = (value: string) => value;
 

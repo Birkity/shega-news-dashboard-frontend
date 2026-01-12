@@ -10,6 +10,20 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+// Helper function for consistent date/time formatting (avoid hydration issues)
+function formatDateTime(dateString: string | null | undefined): string {
+  if (!dateString) return 'Unknown';
+  const date = new Date(dateString);
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = monthNames[date.getMonth()];
+  const day = date.getDate();
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const seconds = date.getSeconds().toString().padStart(2, '0');
+  return `${month} ${day}, ${year} ${hours}:${minutes}:${seconds}`;
+}
+
 async function SystemContent() {
   let health, schedulerStatus, scrapingStatus;
   
@@ -122,17 +136,13 @@ async function SystemContent() {
                 <div className="flex justify-between p-2 rounded bg-muted/50">
                   <span className="text-sm text-muted-foreground">Last Run</span>
                   <span className="text-sm font-medium">
-                    {schedulerStatus.last_run 
-                      ? new Date(schedulerStatus.last_run).toLocaleString() 
-                      : 'Never'}
+                    {schedulerStatus.last_run ? formatDateTime(schedulerStatus.last_run) : 'Never'}
                   </span>
                 </div>
                 <div className="flex justify-between p-2 rounded bg-muted/50">
                   <span className="text-sm text-muted-foreground">Next Run</span>
                   <span className="text-sm font-medium">
-                    {schedulerStatus.next_run 
-                      ? new Date(schedulerStatus.next_run).toLocaleString() 
-                      : 'Not scheduled'}
+                    {schedulerStatus.next_run ? formatDateTime(schedulerStatus.next_run) : 'Not scheduled'}
                   </span>
                 </div>
               </div>
@@ -196,7 +206,7 @@ async function SystemContent() {
                       <div>
                         <p className="font-medium capitalize">{task.site}</p>
                         <p className="text-xs text-muted-foreground">
-                          Started: {new Date(task.started_at).toLocaleString()}
+                          Started: {formatDateTime(task.started_at)}
                         </p>
                       </div>
                     </div>
@@ -245,7 +255,7 @@ async function SystemContent() {
               </div>
               <div className="flex justify-between p-2 rounded bg-muted/50">
                 <span className="text-sm text-muted-foreground">Timestamp</span>
-                <span className="text-sm font-medium">{health?.timestamp ? new Date(health.timestamp).toLocaleString() : 'Unknown'}</span>
+                <span className="text-sm font-medium">{formatDateTime(health?.timestamp)}</span>
               </div>
             </div>
             <div className="space-y-3">
@@ -257,7 +267,9 @@ async function SystemContent() {
               </div>
               <div className="flex justify-between p-2 rounded bg-muted/50">
                 <span className="text-sm text-muted-foreground">Last Check</span>
-                <span className="text-sm font-medium">{new Date().toLocaleTimeString()}</span>
+                <span className="text-sm font-medium suppressHydrationWarning">
+                  {globalThis.window === undefined ? '--:--:--' : new Date().toLocaleTimeString()}
+                </span>
               </div>
               <div className="flex justify-between p-2 rounded bg-muted/50">
                 <span className="text-sm text-muted-foreground">Framework</span>

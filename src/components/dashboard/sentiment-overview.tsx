@@ -36,15 +36,15 @@ export function SentimentOverview({ data, highlightSite }: SentimentOverviewProp
   }
 
   const shegaData = [
-    { name: 'Positive', value: data.shega.positive, color: SENTIMENT_COLORS.positive },
-    { name: 'Neutral', value: data.shega.neutral, color: SENTIMENT_COLORS.neutral },
-    { name: 'Negative', value: data.shega.negative, color: SENTIMENT_COLORS.negative },
+    { name: 'Positive', value: data.shega?.positive ?? 0, color: SENTIMENT_COLORS.positive },
+    { name: 'Neutral', value: data.shega?.neutral ?? 0, color: SENTIMENT_COLORS.neutral },
+    { name: 'Negative', value: data.shega?.negative ?? 0, color: SENTIMENT_COLORS.negative },
   ];
 
   const addisData = [
-    { name: 'Positive', value: data.addis_insight.positive, color: SENTIMENT_COLORS.positive },
-    { name: 'Neutral', value: data.addis_insight.neutral, color: SENTIMENT_COLORS.neutral },
-    { name: 'Negative', value: data.addis_insight.negative, color: SENTIMENT_COLORS.negative },
+    { name: 'Positive', value: data.addis_insight?.positive ?? 0, color: SENTIMENT_COLORS.positive },
+    { name: 'Neutral', value: data.addis_insight?.neutral ?? 0, color: SENTIMENT_COLORS.neutral },
+    { name: 'Negative', value: data.addis_insight?.negative ?? 0, color: SENTIMENT_COLORS.negative },
   ];
 
   // Single site view
@@ -69,13 +69,13 @@ export function SentimentOverview({ data, highlightSite }: SentimentOverviewProp
           />
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-              {siteSentiment.positive_pct.toFixed(1)}% Positive
+              {(siteSentiment?.positive_pct ?? 0).toFixed(1)}% Positive
             </Badge>
             <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
-              {siteSentiment.neutral_pct.toFixed(1)}% Neutral
+              {(siteSentiment?.neutral_pct ?? 0).toFixed(1)}% Neutral
             </Badge>
             <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100">
-              {siteSentiment.negative_pct.toFixed(1)}% Negative
+              {(siteSentiment?.negative_pct ?? 0).toFixed(1)}% Negative
             </Badge>
           </div>
         </CardContent>
@@ -107,13 +107,13 @@ export function SentimentOverview({ data, highlightSite }: SentimentOverviewProp
             />
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                {data.shega.positive_pct.toFixed(1)}% Positive
+                {(data.shega?.positive_pct ?? 0).toFixed(1)}% Positive
               </Badge>
               <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
-                {data.shega.neutral_pct.toFixed(1)}% Neutral
+                {(data.shega?.neutral_pct ?? 0).toFixed(1)}% Neutral
               </Badge>
               <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100">
-                {data.shega.negative_pct.toFixed(1)}% Negative
+                {(data.shega?.negative_pct ?? 0).toFixed(1)}% Negative
               </Badge>
             </div>
           </TabsContent>
@@ -128,13 +128,13 @@ export function SentimentOverview({ data, highlightSite }: SentimentOverviewProp
             />
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                {data.addis_insight.positive_pct.toFixed(1)}% Positive
+                {(data.addis_insight?.positive_pct ?? 0).toFixed(1)}% Positive
               </Badge>
               <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
-                {data.addis_insight.neutral_pct.toFixed(1)}% Neutral
+                {(data.addis_insight?.neutral_pct ?? 0).toFixed(1)}% Neutral
               </Badge>
               <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100">
-                {data.addis_insight.negative_pct.toFixed(1)}% Negative
+                {(data.addis_insight?.negative_pct ?? 0).toFixed(1)}% Negative
               </Badge>
             </div>
           </TabsContent>
