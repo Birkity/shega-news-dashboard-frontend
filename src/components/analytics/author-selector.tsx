@@ -96,7 +96,7 @@ export function AuthorSelector({ authors, selectedAuthor }: AuthorSelectorProps)
                     <div className="flex items-center gap-2">
                       <p className="font-medium truncate">{author.author}</p>
                       <Badge variant="outline" className="shrink-0 text-xs capitalize">
-                        {author.site === 'addis_insight' ? 'Addis' : 'Shega'}
+                        {author.site === 'addis_insight' ? 'Addis' : 'Shega Media'}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">

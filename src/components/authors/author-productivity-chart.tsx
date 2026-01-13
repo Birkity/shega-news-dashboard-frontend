@@ -234,7 +234,7 @@ export function AuthorProductivityChart({ author, site }: AuthorProductivityChar
                 <Line 
                   type="monotone"
                   dataKey="shega" 
-                  name="Shega" 
+                  name="Shega Media" 
                   stroke="#3b82f6" 
                   strokeWidth={2}
                   dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}

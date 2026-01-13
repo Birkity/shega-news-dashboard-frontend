@@ -1,29 +1,11 @@
 import { Suspense } from 'react';
 import { DashboardOverview } from '@/components/dashboard/dashboard-overview';
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton';
-import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 300; // Revalidate every 5 minutes
 
-interface DashboardPageProps {
-  readonly searchParams: Promise<{ site?: SiteFilter }>;
-}
-
-function getDescription(site: SiteFilter): string {
-  if (site === 'shega') {
-    return 'Analytics for Shega Media news coverage';
-  }
-  if (site === 'addis_insight') {
-    return 'Analytics for Addis Insight news coverage';
-  }
-  return 'Comparative analytics for Shega vs Addis Insight news coverage';
-}
-
-export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  const params = await searchParams;
-  const site = params.site || 'all';
-  
+export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -31,17 +13,14 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
           <p className="text-muted-foreground mt-1">
-            {getDescription(site)}
+            Comparative analytics for Shega Media vs Addis Insight news coverage
           </p>
         </div>
-        <Suspense fallback={null}>
-          <SiteSelector />
-        </Suspense>
       </div>
 
       {/* Main Dashboard Content */}
       <Suspense fallback={<DashboardSkeleton />}>
-        <DashboardOverview site={site} />
+        <DashboardOverview site="all" />
       </Suspense>
     </div>
   );

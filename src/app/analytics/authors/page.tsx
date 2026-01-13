@@ -1,11 +1,9 @@
 import { Suspense } from 'react';
 import { authorsAPI } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChartComponent } from '@/components/charts/bar-chart';
-import { User } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { User, Users, FileText, TrendingUp } from 'lucide-react';
 import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
 import { AuthorAnalyticsClient } from '@/components/analytics/author-analytics-client';
 import type { Site } from '@/types/api';
@@ -18,7 +16,9 @@ interface SearchParams {
 }
 
 async function AuthorsContent({ site, selectedAuthor }: { readonly site: SiteFilter; readonly selectedAuthor?: string }) {
-  const siteParam: Site | undefined = site === 'all' ? undefined : site;
+  // For authors page, we don't support 'all' - default to 'shega'
+  const effectiveSite = site === 'all' ? 'shega' : site;
+  const siteParam: Site = effectiveSite;
   
   let topAuthors, authorsWithStats;
   
@@ -43,24 +43,65 @@ async function AuthorsContent({ site, selectedAuthor }: { readonly site: SiteFil
     avgWords: Math.round(author.avg_word_count),
   }));
 
-  function getSiteDescription(): string {
-    if (site === 'shega') {
-      return 'Top authors from Shega';
-    }
-    if (site === 'addis_insight') {
-      return 'Top authors from Addis Insight';
-    }
-    return 'Most prolific writers across both sites';
-  }
+  const siteName = effectiveSite === 'shega' ? 'Shega Media' : 'Addis Insight';
 
-  const getSentimentColor = (polarity: number) => {
-    if (polarity > 0.1) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
-    if (polarity < -0.1) return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
-    return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100';
-  };
+  // Calculate overview stats
+  const totalAuthors = authorsWithStats.length;
+  const totalArticles = authorsWithStats.reduce((sum, a) => sum + a.article_count, 0);
+  const avgArticlesPerAuthor = totalAuthors > 0 ? totalArticles / totalAuthors : 0;
+  const avgWordCount = authorsWithStats.length > 0 
+    ? authorsWithStats.reduce((sum, a) => sum + a.avg_word_count, 0) / authorsWithStats.length 
+    : 0;
+  const avgPolarity = authorsWithStats.length > 0
+    ? authorsWithStats.reduce((sum, a) => sum + a.avg_polarity, 0) / authorsWithStats.length
+    : 0;
 
   return (
     <div className="space-y-6">
+      {/* Overview Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Authors</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalAuthors}</div>
+            <p className="text-xs text-muted-foreground">Active writers on {siteName}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Avg Articles/Author</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{avgArticlesPerAuthor.toFixed(1)}</div>
+            <p className="text-xs text-muted-foreground">Average productivity</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Avg Word Count</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{Math.round(avgWordCount).toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Words per article</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Avg Sentiment</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{avgPolarity > 0 ? '+' : ''}{(avgPolarity * 100).toFixed(0)}%</div>
+            <p className="text-xs text-muted-foreground">Average polarity score</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Top Authors Chart */}
       <Card>
         <CardHeader>
@@ -68,12 +109,12 @@ async function AuthorsContent({ site, selectedAuthor }: { readonly site: SiteFil
             <User className="h-5 w-5" />
             Top 10 Authors by Article Count
           </CardTitle>
-          <CardDescription>{getSiteDescription()}</CardDescription>
+          <CardDescription>Most prolific writers on {siteName}</CardDescription>
         </CardHeader>
         <CardContent>
           <BarChartComponent
             data={chartData}
-            bars={[{ dataKey: 'articles', color: '#2563eb', name: 'Articles' }]}
+            bars={[{ dataKey: 'articles', color: effectiveSite === 'shega' ? '#2563eb' : '#16a34a', name: 'Articles' }]}
             xAxisKey="author"
             height={400}
             layout="vertical"
@@ -84,55 +125,9 @@ async function AuthorsContent({ site, selectedAuthor }: { readonly site: SiteFil
       {/* Author Selection and Analytics */}
       <AuthorAnalyticsClient 
         authors={authorsWithStats} 
-        selectedAuthor={selectedAuthor}
-        site={site}
+        selectedAuthor={selectedAuthor || (authorsWithStats.length > 0 ? authorsWithStats[0].author : undefined)}
+        site={effectiveSite}
       />
-
-      {/* Authors Stats Summary */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {authorsWithStats.slice(0, 5).map((author, index) => (
-          <Card key={`${author.author}-${author.site}`} className="relative overflow-hidden">
-            <div className={cn(
-              'absolute left-0 top-0 h-full w-1',
-              author.site === 'shega' ? 'bg-blue-500' : 'bg-green-500'
-            )} />
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between">
-                <div className="min-w-0 flex-1">
-                  <CardTitle className="text-sm truncate">{author.author}</CardTitle>
-                  <CardDescription className="text-xs capitalize">
-                    {author.site === 'addis_insight' ? 'Addis Insight' : 'Shega'}
-                  </CardDescription>
-                </div>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary shrink-0">
-                  #{index + 1}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <p className="text-muted-foreground">Articles</p>
-                  <p className="text-lg font-bold">{author.article_count}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Avg Words</p>
-                  <p className="text-lg font-bold">{Math.round(author.avg_word_count)}</p>
-                </div>
-              </div>
-              
-              <div className="mt-3 flex flex-wrap gap-1">
-                <Badge className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                  {author.sentiment_breakdown.positive_pct.toFixed(0)}%+
-                </Badge>
-                <Badge className={cn('text-xs', getSentimentColor(author.avg_polarity))}>
-                  {author.avg_polarity > 0 ? '+' : ''}{(author.avg_polarity * 100).toFixed(0)}%
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }
@@ -143,7 +138,7 @@ interface AuthorsPageProps {
 
 export default async function AuthorsPage({ searchParams }: AuthorsPageProps) {
   const params = await searchParams;
-  const site = (params.site as SiteFilter) || 'all';
+  const site = (params.site as SiteFilter) || 'shega'; // Default to shega
   const selectedAuthor = params.author;
 
   return (
@@ -155,7 +150,7 @@ export default async function AuthorsPage({ searchParams }: AuthorsPageProps) {
             Analysis of author productivity, writing patterns, and keywords
           </p>
         </div>
-        <SiteSelector />
+        <SiteSelector showBothOption={false} />
       </div>
 
       <Suspense fallback={<AuthorsSkeleton />}>

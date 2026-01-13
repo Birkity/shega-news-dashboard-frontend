@@ -268,7 +268,7 @@ export function AuthorKeywordsCard({ author }: AuthorKeywordsCardProps) {
                   site === 'shega' ? 'border-blue-500 text-blue-600' : 'border-red-500 text-red-600'
                 )}
               >
-                {site === 'addis_insight' ? 'Addis Insight' : 'Shega'}
+                {site === 'addis_insight' ? 'Addis Insight' : 'Shega Media'}
               </Badge>
             ))}
           </div>

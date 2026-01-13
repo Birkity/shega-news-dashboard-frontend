@@ -107,7 +107,7 @@ async function CategoriesContent() {
       <Tabs defaultValue="combined" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="combined">Combined View</TabsTrigger>
-          <TabsTrigger value="shega">Shega</TabsTrigger>
+          <TabsTrigger value="shega">Shega Media</TabsTrigger>
           <TabsTrigger value="addis">Addis Insight</TabsTrigger>
         </TabsList>
 

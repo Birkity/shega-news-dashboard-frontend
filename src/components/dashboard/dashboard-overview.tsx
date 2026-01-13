@@ -1,10 +1,9 @@
-import { dashboardAPI, nlpAPI, authorsAPI, topicsAPI, comparisonAPI } from '@/lib/api';
+import { dashboardAPI, nlpAPI, authorsAPI, topicsAPI } from '@/lib/api';
 import { KPICard, ComparisonKPICard } from './kpi-card';
 import { DailyArticlesChart } from './daily-articles-chart';
 import { SentimentOverview } from './sentiment-overview';
 import { TopAuthorsCard } from './top-authors-card';
 import { TrendingTopicsCard } from './trending-topics-card';
-import { CompetitiveInsightsCard } from './competitive-insights-card';
 import type { SiteFilter } from './site-selector';
 
 interface DashboardOverviewProps {
@@ -15,15 +14,14 @@ async function fetchDashboardData(site: SiteFilter) {
   try {
     const siteParam = site === 'all' ? undefined : site;
     
-    const [overview, summary, dailyArticles, sentimentBySite, topAuthors, spikes, insights] = 
+    const [overview, summary, dailyArticles, sentimentBySite, topAuthors, spikes] = 
       await Promise.allSettled([
         dashboardAPI.getOverview(),
         dashboardAPI.getSummary(),
-        dashboardAPI.getDailyArticles(30, siteParam),
+        dashboardAPI.getDailyArticles(90, siteParam), // Extended to 90 days
         nlpAPI.getSentimentBySite(),
         authorsAPI.getTopWithStats({ limit: 10, site: siteParam }),
         topicsAPI.getSpikes({ weeks: 4, threshold: 2 }),
-        comparisonAPI.getInsights(),
       ]);
 
     return {
@@ -33,7 +31,6 @@ async function fetchDashboardData(site: SiteFilter) {
       sentimentBySite: sentimentBySite.status === 'fulfilled' ? sentimentBySite.value : null,
       topAuthors: topAuthors.status === 'fulfilled' ? topAuthors.value : [],
       spikes: spikes.status === 'fulfilled' ? spikes.value : [],
-      insights: insights.status === 'fulfilled' ? insights.value : null,
     };
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
@@ -44,7 +41,6 @@ async function fetchDashboardData(site: SiteFilter) {
       sentimentBySite: null,
       topAuthors: [],
       spikes: [],
-      insights: null,
     };
   }
 }
@@ -186,11 +182,6 @@ export async function DashboardOverview({ site }: DashboardOverviewProps) {
         <TopAuthorsCard authors={data.topAuthors} />
         <TrendingTopicsCard topics={data.spikes} />
       </div>
-
-      {/* Competitive Insights Row - Only shown in comparison view */}
-      {data.insights?.insights?.length && (
-        <CompetitiveInsightsCard insights={data.insights} />
-      )}
     </div>
   );
 }

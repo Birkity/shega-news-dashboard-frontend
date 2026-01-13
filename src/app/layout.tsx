@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shega News Analytics Dashboard",
-  description: "Comparative analytics dashboard for Shega vs Addis Insight news coverage",
-  keywords: ["analytics", "news", "shega", "addis insight", "dashboard", "ethiopia"],
+  title: "Shega Media News Analytics Dashboard",
+  description: "Comparative analytics dashboard for Shega Media vs Addis Insight news coverage",
+  keywords: ["analytics", "news", "shega media", "addis insight", "dashboard", "ethiopia"],
 };
 
 export default function RootLayout({

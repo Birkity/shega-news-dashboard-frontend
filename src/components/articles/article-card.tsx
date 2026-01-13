@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,10 +9,10 @@ import type { Article } from '@/types/api';
 import { cn } from '@/lib/utils';
 
 interface ArticleCardProps {
-  article: Article;
+  readonly article: Article;
 }
 
-export function ArticleCard({ article }: ArticleCardProps) {
+export function ArticleCard({ article }: Readonly<ArticleCardProps>) {
   const getSentimentColor = (label?: string) => {
     if (label === 'positive') return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
     if (label === 'negative') return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
@@ -93,9 +92,9 @@ export function ArticleCard({ article }: ArticleCardProps) {
               {category}
             </Badge>
           ))}
-          {(article.categories?.length || 0) > 3 && (
+          {(article.categories?.length ?? 0) > 3 && (
             <Badge variant="outline" className="text-xs">
-              +{article.categories!.length - 3} more
+              +{(article.categories?.length ?? 0) - 3} more
             </Badge>
           )}
           

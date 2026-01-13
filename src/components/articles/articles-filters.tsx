@@ -90,7 +90,7 @@ export function ArticlesFilters() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Sites</SelectItem>
-          <SelectItem value="shega">Shega</SelectItem>
+          <SelectItem value="shega">Shega Media</SelectItem>
           <SelectItem value="addis_insight">Addis Insight</SelectItem>
         </SelectContent>
       </Select>

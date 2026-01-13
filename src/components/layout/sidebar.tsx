@@ -11,7 +11,6 @@ import {
   Tags,
   MessageSquare,
   TrendingUp,
-  BarChart3,
   Brain,
   GitCompare,
   Calendar,
@@ -38,12 +37,11 @@ const navItems: NavItem[] = [
   { title: 'Dashboard', href: '/', icon: LayoutDashboard },
   { title: 'Articles', href: '/articles', icon: Newspaper },
   { title: 'Authors', href: '/analytics/authors', icon: Users },
-  { title: 'Categories', href: '/analytics/categories', icon: Tags },
   { title: 'Keywords', href: '/analytics/keywords', icon: Tags },
   { title: 'Topics', href: '/analytics/topics', icon: TrendingUp, badge: 'Trends' },
   { title: 'Sentiment', href: '/analytics/sentiment', icon: MessageSquare },
   { title: 'Publishing', href: '/analytics/publishing', icon: Calendar },
-  { title: 'NLP Analytics', href: '/analytics/nlp', icon: Brain },
+  { title: 'Content Quality', href: '/analytics/nlp', icon: Brain },
   { title: 'Comparison', href: '/comparison', icon: GitCompare },
 ];
 
@@ -52,11 +50,71 @@ const systemItems: NavItem[] = [
 ];
 
 interface SidebarProps {
-  isCollapsed: boolean;
-  onToggle: () => void;
+  readonly isCollapsed: boolean;
+  readonly onToggle: () => void;
 }
 
-export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
+interface NavLinkProps {
+  readonly item: NavItem;
+  readonly isCollapsed: boolean;
+  readonly pathname: string;
+}
+
+function NavLink({ item, isCollapsed, pathname }: Readonly<NavLinkProps>) {
+  const isActive = pathname === item.href || 
+    (item.href !== '/' && pathname.startsWith(item.href));
+  
+  const linkContent = (
+    <Link
+      href={item.href}
+      className={cn(
+        'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+        'hover:bg-accent/80 hover:text-accent-foreground',
+        isActive 
+          ? 'bg-primary text-primary-foreground shadow-sm' 
+          : 'text-muted-foreground hover:text-foreground',
+        isCollapsed && 'justify-center px-2'
+      )}
+    >
+      <item.icon className={cn('h-5 w-5 shrink-0', isActive && 'text-primary-foreground')} />
+      {!isCollapsed && (
+        <>
+          <span className="flex-1">{item.title}</span>
+          {item.badge && (
+            <span className={cn(
+              'rounded-full px-2 py-0.5 text-xs font-medium',
+              isActive 
+                ? 'bg-primary-foreground/20 text-primary-foreground' 
+                : 'bg-primary/10 text-primary'
+            )}>
+              {item.badge}
+            </span>
+          )}
+        </>
+      )}
+    </Link>
+  );
+
+  if (isCollapsed) {
+    return (
+      <Tooltip delayDuration={0}>
+        <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+        <TooltipContent side="right" className="flex items-center gap-2">
+          {item.title}
+          {item.badge && (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              {item.badge}
+            </span>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return linkContent;
+}
+
+export function Sidebar({ isCollapsed, onToggle }: Readonly<SidebarProps>) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
@@ -64,60 +122,6 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   React.useEffect(() => {
     setMounted(true);
   }, []);
-
-  const NavLink = ({ item }: { item: NavItem }) => {
-    const isActive = pathname === item.href || 
-      (item.href !== '/' && pathname.startsWith(item.href));
-    
-    const linkContent = (
-      <Link
-        href={item.href}
-        className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
-          'hover:bg-accent/80 hover:text-accent-foreground',
-          isActive 
-            ? 'bg-primary text-primary-foreground shadow-sm' 
-            : 'text-muted-foreground hover:text-foreground',
-          isCollapsed && 'justify-center px-2'
-        )}
-      >
-        <item.icon className={cn('h-5 w-5 shrink-0', isActive && 'text-primary-foreground')} />
-        {!isCollapsed && (
-          <>
-            <span className="flex-1">{item.title}</span>
-            {item.badge && (
-              <span className={cn(
-                'rounded-full px-2 py-0.5 text-xs font-medium',
-                isActive 
-                  ? 'bg-primary-foreground/20 text-primary-foreground' 
-                  : 'bg-primary/10 text-primary'
-              )}>
-                {item.badge}
-              </span>
-            )}
-          </>
-        )}
-      </Link>
-    );
-
-    if (isCollapsed) {
-      return (
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-          <TooltipContent side="right" className="flex items-center gap-2">
-            {item.title}
-            {item.badge && (
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                {item.badge}
-              </span>
-            )}
-          </TooltipContent>
-        </Tooltip>
-      );
-    }
-
-    return linkContent;
-  };
 
   return (
     <TooltipProvider>
@@ -139,7 +143,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                   <Zap className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold leading-none">Shega Analytics</h1>
+                  <h1 className="text-lg font-bold leading-none">Shega Media Analytics</h1>
                   <p className="text-xs text-muted-foreground">News Dashboard</p>
                 </div>
               </div>
@@ -160,7 +164,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 </p>
               )}
               {navItems.map((item) => (
-                <NavLink key={item.href} item={item} />
+                <NavLink key={item.href} item={item} isCollapsed={isCollapsed} pathname={pathname} />
               ))}
             </div>
 
@@ -173,7 +177,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 </p>
               )}
               {systemItems.map((item) => (
-                <NavLink key={item.href} item={item} />
+                <NavLink key={item.href} item={item} isCollapsed={isCollapsed} pathname={pathname} />
               ))}
             </div>
           </nav>

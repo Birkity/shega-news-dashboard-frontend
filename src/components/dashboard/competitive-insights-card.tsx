@@ -29,7 +29,7 @@ function getWinnerBadge(winner?: API.Site | 'tie') {
     return <Badge variant="outline" className="text-xs">Tie</Badge>;
   }
   if (winner === 'shega') {
-    return <Badge variant="default" className="text-xs bg-blue-500">Shega</Badge>;
+    return <Badge variant="default" className="text-xs bg-blue-500">Shega Media</Badge>;
   }
   return <Badge variant="default" className="text-xs bg-green-500">Addis</Badge>;
 }
@@ -51,14 +51,14 @@ export function CompetitiveInsightsCard({ insights }: CompetitiveInsightsCardPro
               Competitive Insights
             </CardTitle>
             <CardDescription>
-              AI-generated insights from Shega vs Addis Insight analysis
+              AI-generated insights from Shega Media vs Addis Insight analysis
             </CardDescription>
           </div>
           {insights.summary && (
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-blue-600">
                 <Trophy className="h-3 w-3 mr-1" />
-                Shega: {insights.summary.shega_wins}
+                Shega Media: {insights.summary.shega_wins}
               </Badge>
               <Badge variant="outline" className="text-green-600">
                 <Trophy className="h-3 w-3 mr-1" />
@@ -89,7 +89,7 @@ export function CompetitiveInsightsCard({ insights }: CompetitiveInsightsCardPro
                 {insight.metric && (
                   <div className="flex items-center gap-2 mt-1 text-xs">
                     <Scale className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-blue-600">Shega: {insight.shega_value}</span>
+                    <span className="text-blue-600">Shega Media: {insight.shega_value}</span>
                     <span className="text-muted-foreground">vs</span>
                     <span className="text-green-600">Addis: {insight.addis_value}</span>
                   </div>

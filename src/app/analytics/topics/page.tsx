@@ -30,7 +30,9 @@ interface SearchParams {
 }
 
 async function TopicsContent({ site }: { readonly site: SiteFilter }) {
-  const siteParam: Site | undefined = site === 'all' ? undefined : site;
+  // For topics page, we don't support 'all' - default to 'shega'
+  const effectiveSite = site === 'all' ? 'shega' : site;
+  const siteParam: Site = effectiveSite;
   
   let topicEvolution, topicSpikes, topicSentiment;
   
@@ -249,7 +251,7 @@ interface TopicsPageProps {
 
 export default async function TopicsPage({ searchParams }: TopicsPageProps) {
   const params = await searchParams;
-  const site = (params.site as SiteFilter) || 'all';
+  const site = (params.site as SiteFilter) || 'shega'; // Default to shega
 
   return (
     <div className="space-y-6">
@@ -260,7 +262,7 @@ export default async function TopicsPage({ searchParams }: TopicsPageProps) {
             Track topic evolution, spikes, and sentiment over time
           </p>
         </div>
-        <SiteSelector />
+        <SiteSelector showBothOption={false} />
       </div>
 
       <Suspense fallback={<TopicsSkeleton />}>

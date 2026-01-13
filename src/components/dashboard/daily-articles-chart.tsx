@@ -41,7 +41,7 @@ export function DailyArticlesChart({ data, site }: DailyArticlesChartProps) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold">Daily Publishing Trends</CardTitle>
-          <CardDescription>Article count per day over the last 30 days</CardDescription>
+          <CardDescription>Article count per day over the last 90 days</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex h-[300px] items-center justify-center text-muted-foreground">
@@ -55,7 +55,7 @@ export function DailyArticlesChart({ data, site }: DailyArticlesChartProps) {
   // Single site view
   if (site) {
     const color = site === 'shega' ? '#2563eb' : '#16a34a';
-    const name = site === 'shega' ? 'Shega' : 'Addis Insight';
+    const name = site === 'shega' ? 'Shega Media' : 'Addis Insight';
     
     return (
       <Card>
@@ -84,13 +84,13 @@ export function DailyArticlesChart({ data, site }: DailyArticlesChartProps) {
     <Card>
       <CardHeader>
         <CardTitle className="text-base font-semibold">Daily Publishing Trends</CardTitle>
-        <CardDescription>Article count per day over the last 30 days</CardDescription>
+        <CardDescription>Article count per day over the last 90 days</CardDescription>
       </CardHeader>
       <CardContent>
         <AreaChartComponent
           data={chartData}
           areas={[
-            { dataKey: 'shega', color: '#2563eb', name: 'Shega' },
+            { dataKey: 'shega', color: '#2563eb', name: 'Shega Media' },
             { dataKey: 'addis_insight', color: '#16a34a', name: 'Addis Insight' },
           ]}
           xAxisKey="date"

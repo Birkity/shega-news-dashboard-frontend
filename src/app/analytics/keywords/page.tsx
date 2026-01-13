@@ -2,20 +2,11 @@ import { Suspense } from 'react';
 import { keywordsAPI } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Heading1, FileText, Tags, Sparkles, TrendingUp, Zap, ArrowUpRight } from 'lucide-react';
+import { Heading1, FileText, Sparkles } from 'lucide-react';
 import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
-import type * as API from '@/types/api';
 
 export const dynamic = 'force-dynamic';
-
-// Helper function for spike ratio badge variant
-function getSpikeRatioBadgeVariant(ratio: number): 'default' | 'secondary' | 'destructive' {
-  if (ratio >= 3) return 'destructive';
-  if (ratio >= 2) return 'default';
-  return 'secondary';
-}
 
 interface SearchParams {
   site?: string;
@@ -136,15 +127,13 @@ function KeywordStats({
 }
 
 async function KeywordsContent({ site }: { readonly site: SiteFilter }) {
-  let headlineData, bodyData, topKeywords, extractedKeywords, trendingKeywords;
+  let headlineData, bodyData, extractedKeywords;
   
   try {
-    [headlineData, bodyData, topKeywords, extractedKeywords, trendingKeywords] = await Promise.all([
+    [headlineData, bodyData, extractedKeywords] = await Promise.all([
       keywordsAPI.getHeadline({ limit: 50 }),
       keywordsAPI.getBody({ limit: 50 }),
-      keywordsAPI.getTop({ limit: 50, site: site === 'all' ? undefined : site }),
       keywordsAPI.getExtracted({ limit: 50, site: site === 'all' ? undefined : site }),
-      keywordsAPI.getTrending({ weeks: 4, threshold: 1.5, site: site === 'all' ? undefined : site }),
     ]);
   } catch (error) {
     console.error('Error fetching keywords data:', error);
@@ -170,11 +159,6 @@ async function KeywordsContent({ site }: { readonly site: SiteFilter }) {
 
   const headlineKeywords = getHeadlineKeywords();
   const bodyKeywords = getBodyKeywords();
-
-  const metaKeywordsData = topKeywords.map((kw) => ({
-    keyword: kw.keyword,
-    count: kw.count,
-  }));
 
   const tfidfKeywordsData = extractedKeywords.map((kw) => ({
     keyword: kw.keyword,
@@ -217,7 +201,7 @@ async function KeywordsContent({ site }: { readonly site: SiteFilter }) {
   const bodyStats = getBodyStats();
 
   function getSiteLabel(): string {
-    if (site === 'shega') return 'Shega';
+    if (site === 'shega') return 'Shega Media';
     if (site === 'addis_insight') return 'Addis Insight';
     return 'All Sites';
   }
@@ -234,17 +218,9 @@ async function KeywordsContent({ site }: { readonly site: SiteFilter }) {
             <FileText className="h-4 w-4" />
             Body Keywords
           </TabsTrigger>
-          <TabsTrigger value="meta" className="flex items-center gap-2">
-            <Tags className="h-4 w-4" />
-            Meta Keywords
-          </TabsTrigger>
           <TabsTrigger value="tfidf" className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
             TF-IDF Extracted
-          </TabsTrigger>
-          <TabsTrigger value="trending" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Trending
           </TabsTrigger>
         </TabsList>
 
@@ -328,30 +304,6 @@ async function KeywordsContent({ site }: { readonly site: SiteFilter }) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="meta">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Tags className="h-5 w-5" />
-                Meta Keywords
-              </CardTitle>
-              <CardDescription>
-                Keywords from article metadata tags - {getSiteLabel()}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <WordCloud 
-                words={metaKeywordsData} 
-                palette="meta" 
-                emptyMessage={site === 'addis_insight' 
-                  ? 'Addis Insight articles do not have meta keywords in the database. Try viewing Headline or Body keywords instead.'
-                  : 'No meta keywords available for this selection'
-                }
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="tfidf">
           <Card>
             <CardHeader>
@@ -368,107 +320,6 @@ async function KeywordsContent({ site }: { readonly site: SiteFilter }) {
             </CardContent>
           </Card>
         </TabsContent>
-
-        <TabsContent value="trending">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-green-500" />
-                Trending Keywords
-              </CardTitle>
-              <CardDescription>
-                Keywords with significant increase in usage over the last 4 weeks - {getSiteLabel()}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Stats Row */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <KeywordStats 
-                  label="Total Trending" 
-                  value={Array.isArray(trendingKeywords) ? trendingKeywords.length : 0}
-                  subtext="Spiking keywords"
-                />
-                <KeywordStats 
-                  label="New Keywords" 
-                  value={Array.isArray(trendingKeywords) ? trendingKeywords.filter((k: API.TrendingKeyword) => k.is_new).length : 0}
-                  subtext="First time appearing"
-                />
-                <KeywordStats 
-                  label="Avg Spike Ratio" 
-                  value={
-                    Array.isArray(trendingKeywords) && trendingKeywords.length > 0
-                      ? (trendingKeywords.reduce((acc: number, k: API.TrendingKeyword) => acc + (k.spike_ratio ?? 0), 0) / 
-                          trendingKeywords.filter((k: API.TrendingKeyword) => k.spike_ratio !== null).length).toFixed(1) + 'x'
-                      : 'N/A'
-                  }
-                  subtext="Growth multiplier"
-                />
-                <KeywordStats 
-                  label="Top Spike" 
-                  value={
-                    Array.isArray(trendingKeywords) && trendingKeywords.length > 0
-                      ? Math.max(...trendingKeywords.map((k: API.TrendingKeyword) => k.spike_ratio ?? 0)).toFixed(1) + 'x'
-                      : 'N/A'
-                  }
-                  subtext="Highest growth"
-                />
-              </div>
-
-              {/* Trending Keywords List */}
-              {Array.isArray(trendingKeywords) && trendingKeywords.length > 0 ? (
-                <div className="space-y-3">
-                  {trendingKeywords.slice(0, 20).map((kw: API.TrendingKeyword) => (
-                    <div 
-                      key={`trending-${kw.keyword}`}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
-                          {kw.is_new ? (
-                            <Zap className="h-4 w-4 text-yellow-500" />
-                          ) : (
-                            <ArrowUpRight className="h-4 w-4 text-green-500" />
-                          )}
-                        </div>
-                        <div>
-                          <span className="font-medium">{kw.keyword}</span>
-                          {kw.is_new && (
-                            <Badge variant="outline" className="ml-2 text-yellow-600 border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20">
-                              NEW
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-sm font-medium">{kw.recent_count} recent</p>
-                          <p className="text-xs text-muted-foreground">{kw.previous_count} previous</p>
-                        </div>
-                        {kw.spike_ratio !== null && (
-                          <Badge 
-                            variant={getSpikeRatioBadgeVariant(kw.spike_ratio)}
-                            className="min-w-[60px] justify-center"
-                          >
-                            {kw.spike_ratio.toFixed(1)}x
-                          </Badge>
-                        )}
-                        {kw.is_new && kw.spike_ratio === null && (
-                          <Badge variant="outline" className="min-w-[60px] justify-center">
-                            ∞
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex h-[250px] items-center justify-center text-muted-foreground text-center px-4">
-                  No trending keywords detected for this period. Try adjusting the time range or threshold.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );
@@ -480,7 +331,7 @@ interface KeywordsPageProps {
 
 export default async function KeywordsPage({ searchParams }: KeywordsPageProps) {
   const params = await searchParams;
-  const site = (params.site as SiteFilter) || 'all';
+  const site = (params.site as SiteFilter) || 'shega'; // Default to shega
 
   return (
     <div className="space-y-6">
@@ -491,7 +342,7 @@ export default async function KeywordsPage({ searchParams }: KeywordsPageProps) 
             Analysis of article keywords from headlines, body content, and metadata
           </p>
         </div>
-        <SiteSelector />
+        <SiteSelector showBothOption={false} />
       </div>
 
       <Suspense fallback={<KeywordsSkeleton />}>

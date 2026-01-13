@@ -2,21 +2,14 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DonutChart } from '@/components/charts/donut-chart';
-import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import type { SentimentBySite } from '@/types/api';
+import { cn } from '@/lib/utils';
 
 interface SentimentOverviewProps {
   readonly data: SentimentBySite | null;
   readonly highlightSite?: 'shega' | 'addis_insight';
 }
-
-const SENTIMENT_COLORS = {
-  positive: '#22c55e',
-  neutral: '#6b7280',
-  negative: '#ef4444',
-};
 
 export function SentimentOverview({ data, highlightSite }: SentimentOverviewProps) {
   if (!data) {
@@ -35,23 +28,10 @@ export function SentimentOverview({ data, highlightSite }: SentimentOverviewProp
     );
   }
 
-  const shegaData = [
-    { name: 'Positive', value: data.shega?.positive ?? 0, color: SENTIMENT_COLORS.positive },
-    { name: 'Neutral', value: data.shega?.neutral ?? 0, color: SENTIMENT_COLORS.neutral },
-    { name: 'Negative', value: data.shega?.negative ?? 0, color: SENTIMENT_COLORS.negative },
-  ];
-
-  const addisData = [
-    { name: 'Positive', value: data.addis_insight?.positive ?? 0, color: SENTIMENT_COLORS.positive },
-    { name: 'Neutral', value: data.addis_insight?.neutral ?? 0, color: SENTIMENT_COLORS.neutral },
-    { name: 'Negative', value: data.addis_insight?.negative ?? 0, color: SENTIMENT_COLORS.negative },
-  ];
-
   // Single site view
   if (highlightSite) {
-    const siteData = highlightSite === 'shega' ? shegaData : addisData;
     const siteSentiment = highlightSite === 'shega' ? data.shega : data.addis_insight;
-    const siteName = highlightSite === 'shega' ? 'Shega' : 'Addis Insight';
+    const siteName = highlightSite === 'shega' ? 'Shega Media' : 'Addis Insight';
 
     return (
       <Card className="h-full">
@@ -59,86 +39,95 @@ export function SentimentOverview({ data, highlightSite }: SentimentOverviewProp
           <CardTitle className="text-base font-semibold">Sentiment Analysis</CardTitle>
           <CardDescription>{siteName} sentiment distribution</CardDescription>
         </CardHeader>
-        <CardContent>
-          <DonutChart
-            data={siteData}
-            height={220}
-            innerRadius={50}
-            outerRadius={80}
-            showLegend={false}
-          />
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-              {(siteSentiment?.positive_pct ?? 0).toFixed(1)}% Positive
-            </Badge>
-            <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
-              {(siteSentiment?.neutral_pct ?? 0).toFixed(1)}% Neutral
-            </Badge>
-            <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100">
-              {(siteSentiment?.negative_pct ?? 0).toFixed(1)}% Negative
-            </Badge>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-green-500" />
+                <span className="text-sm font-medium">{(siteSentiment?.positive_pct ?? 0).toFixed(1)}%</span>
+              </div>
+              <span className="text-sm text-muted-foreground">{siteSentiment?.positive ?? 0} articles</span>
+            </div>
+            <Progress value={siteSentiment?.positive_pct ?? 0} className="h-2 bg-muted [&>div]:bg-green-500" />
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-gray-500" />
+                <span className="text-sm font-medium">{(siteSentiment?.neutral_pct ?? 0).toFixed(1)}%</span>
+              </div>
+              <span className="text-sm text-muted-foreground">{siteSentiment?.neutral ?? 0} articles</span>
+            </div>
+            <Progress value={siteSentiment?.neutral_pct ?? 0} className="h-2 bg-muted [&>div]:bg-gray-500" />
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-red-500" />
+                <span className="text-sm font-medium">{(siteSentiment?.negative_pct ?? 0).toFixed(1)}%</span>
+              </div>
+              <span className="text-sm text-muted-foreground">{siteSentiment?.negative ?? 0} articles</span>
+            </div>
+            <Progress value={siteSentiment?.negative_pct ?? 0} className="h-2 bg-muted [&>div]:bg-red-500" />
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  // Comparison view (both sites with tabs)
+  // Comparison view - show both sites side by side with numbers only
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold">Sentiment Analysis</CardTitle>
         <CardDescription>Distribution by site</CardDescription>
       </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="shega" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="shega" className="text-xs">Shega</TabsTrigger>
-            <TabsTrigger value="addis" className="text-xs">Addis Insight</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="shega" className="mt-0">
-            <DonutChart
-              data={shegaData}
-              height={220}
-              innerRadius={50}
-              outerRadius={80}
-              showLegend={false}
-            />
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                {(data.shega?.positive_pct ?? 0).toFixed(1)}% Positive
-              </Badge>
-              <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
-                {(data.shega?.neutral_pct ?? 0).toFixed(1)}% Neutral
-              </Badge>
-              <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100">
-                {(data.shega?.negative_pct ?? 0).toFixed(1)}% Negative
-              </Badge>
+      <CardContent className="space-y-6">
+        {/* Shega Media */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span className="text-sm font-medium">Shega Media</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className={cn("p-2 rounded-md bg-green-100 dark:bg-green-900/30")}>
+              <div className="text-lg font-bold text-green-600">{(data.shega?.positive_pct ?? 0).toFixed(0)}%</div>
+              <div className="text-xs text-muted-foreground">{data.shega?.positive ?? 0}</div>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="addis" className="mt-0">
-            <DonutChart
-              data={addisData}
-              height={220}
-              innerRadius={50}
-              outerRadius={80}
-              showLegend={false}
-            />
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                {(data.addis_insight?.positive_pct ?? 0).toFixed(1)}% Positive
-              </Badge>
-              <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
-                {(data.addis_insight?.neutral_pct ?? 0).toFixed(1)}% Neutral
-              </Badge>
-              <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100">
-                {(data.addis_insight?.negative_pct ?? 0).toFixed(1)}% Negative
-              </Badge>
+            <div className={cn("p-2 rounded-md bg-gray-100 dark:bg-gray-800/50")}>
+              <div className="text-lg font-bold text-gray-600 dark:text-gray-400">{(data.shega?.neutral_pct ?? 0).toFixed(0)}%</div>
+              <div className="text-xs text-muted-foreground">{data.shega?.neutral ?? 0}</div>
             </div>
-          </TabsContent>
-        </Tabs>
+            <div className={cn("p-2 rounded-md bg-red-100 dark:bg-red-900/30")}>
+              <div className="text-lg font-bold text-red-600">{(data.shega?.negative_pct ?? 0).toFixed(0)}%</div>
+              <div className="text-xs text-muted-foreground">{data.shega?.negative ?? 0}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Addis Insight */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+            <span className="text-sm font-medium">Addis Insight</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className={cn("p-2 rounded-md bg-green-100 dark:bg-green-900/30")}>
+              <div className="text-lg font-bold text-green-600">{(data.addis_insight?.positive_pct ?? 0).toFixed(0)}%</div>
+              <div className="text-xs text-muted-foreground">{data.addis_insight?.positive ?? 0}</div>
+            </div>
+            <div className={cn("p-2 rounded-md bg-gray-100 dark:bg-gray-800/50")}>
+              <div className="text-lg font-bold text-gray-600 dark:text-gray-400">{(data.addis_insight?.neutral_pct ?? 0).toFixed(0)}%</div>
+              <div className="text-xs text-muted-foreground">{data.addis_insight?.neutral ?? 0}</div>
+            </div>
+            <div className={cn("p-2 rounded-md bg-red-100 dark:bg-red-900/30")}>
+              <div className="text-lg font-bold text-red-600">{(data.addis_insight?.negative_pct ?? 0).toFixed(0)}%</div>
+              <div className="text-xs text-muted-foreground">{data.addis_insight?.negative ?? 0}</div>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

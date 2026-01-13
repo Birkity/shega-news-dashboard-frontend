@@ -5,11 +5,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BarChartComponent } from '@/components/charts/bar-chart';
 import { AreaLineChart } from '@/components/charts/line-chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, Calendar, Sun, Moon, Activity } from 'lucide-react';
+import { Calendar, Activity, FileText, TrendingUp } from 'lucide-react';
+import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
 
 export const dynamic = 'force-dynamic';
 
-async function PublishingContent() {
+interface SearchParams {
+  site?: string;
+}
+
+async function PublishingContent({ site }: { readonly site: SiteFilter }) {
+  // For publishing page, we don't support 'all' - default to 'shega'
+  const effectiveSite = site === 'all' ? 'shega' : site;
+  
   let publishingTrends, yearlyAnalysis;
   
   try {
@@ -26,97 +34,89 @@ async function PublishingContent() {
     );
   }
 
-  // Transform hourly data - API returns { value: "0", shega: number, addis_insight: number }
-  const hourlyData = publishingTrends.by_hour.map((item) => ({
-    hour: `${item.value.padStart(2, '0')}:00`,
-    Shega: item.shega,
-    'Addis Insight': item.addis_insight,
-  }));
+  const siteName = effectiveSite === 'shega' ? 'Shega Media' : 'Addis Insight';
+  const siteColor = effectiveSite === 'shega' ? '#2563eb' : '#16a34a';
+
+  // Get site-specific data
+  const getSiteValue = (item: { shega: number; addis_insight: number }) => 
+    effectiveSite === 'shega' ? item.shega : item.addis_insight;
 
   // Transform weekday data
   const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const weekdayData = publishingTrends.by_weekday.map((item) => ({
-    day: weekdays[Number.parseInt(item.value, 10)]?.slice(0, 3) || item.value,
-    Shega: item.shega,
-    'Addis Insight': item.addis_insight,
+    day: weekdays[Number.parseInt(item.value, 10)] || item.value,
+    articles: getSiteValue(item),
   }));
 
   // Transform monthly data
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const monthlyData = publishingTrends.by_month.map((item) => ({
     month: months[Number.parseInt(item.value, 10) - 1] || item.value,
-    Shega: item.shega,
-    'Addis Insight': item.addis_insight,
+    articles: getSiteValue(item),
   }));
 
-  // Calculate peak hours
-  const peakShegaHour = publishingTrends.by_hour.reduce((max, h) => h.shega > max.shega ? h : max, publishingTrends.by_hour[0] || { value: '0', shega: 0, addis_insight: 0 });
-  const peakAddisHour = publishingTrends.by_hour.reduce((max, h) => h.addis_insight > max.addis_insight ? h : max, publishingTrends.by_hour[0] || { value: '0', shega: 0, addis_insight: 0 });
-
-  // Calculate peak days
-  const peakShegaDay = publishingTrends.by_weekday.reduce((max, d) => d.shega > max.shega ? d : max, publishingTrends.by_weekday[0] || { value: '0', shega: 0, addis_insight: 0 });
-  const peakAddisDay = publishingTrends.by_weekday.reduce((max, d) => d.addis_insight > max.addis_insight ? d : max, publishingTrends.by_weekday[0] || { value: '0', shega: 0, addis_insight: 0 });
-
-  // Transform yearly timeline - check if yearlyAnalysis has the expected structure
+  // Transform yearly timeline
   const yearlyTimelineData = yearlyAnalysis.years?.map((item) => ({
-    year: item.year,
-    Shega: item.shega.articles,
-    'Addis Insight': item.addis_insight.articles,
-    total: item.shega.articles + item.addis_insight.articles,
+    year: item.year.toString(),
+    articles: effectiveSite === 'shega' ? item.shega.articles : item.addis_insight.articles,
   })) || [];
+
+  // Calculate totals
+  const totalArticles = publishingTrends.by_weekday.reduce((sum, d) => sum + getSiteValue(d), 0);
+  const avgPerDay = weekdayData.length > 0 
+    ? Math.round(weekdayData.reduce((sum, d) => sum + d.articles, 0) / weekdayData.length)
+    : 0;
+  const peakDay = weekdayData.reduce((max, d) => d.articles > max.articles ? d : max, weekdayData[0] || { day: 'N/A', articles: 0 });
+  const peakMonth = monthlyData.reduce((max, m) => m.articles > max.articles ? m : max, monthlyData[0] || { month: 'N/A', articles: 0 });
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
+      {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Shega Peak Hour</CardTitle>
-            <Clock className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium">Total Articles</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{peakShegaHour.value.padStart(2, '0')}:00</div>
-            <p className="text-xs text-muted-foreground">{peakShegaHour.shega} articles published</p>
+            <div className="text-2xl font-bold">{totalArticles.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">{siteName}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Addis Peak Hour</CardTitle>
-            <Clock className="h-4 w-4 text-red-500" />
+            <CardTitle className="text-sm font-medium">Avg Per Day</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{peakAddisHour.value.padStart(2, '0')}:00</div>
-            <p className="text-xs text-muted-foreground">{peakAddisHour.addis_insight} articles published</p>
+            <div className="text-2xl font-bold">{avgPerDay}</div>
+            <p className="text-xs text-muted-foreground">Articles per weekday</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Shega Peak Day</CardTitle>
-            <Calendar className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium">Peak Day</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{weekdays[Number.parseInt(peakShegaDay.value, 10)]?.slice(0, 3) || 'N/A'}</div>
-            <p className="text-xs text-muted-foreground">{peakShegaDay.shega} articles</p>
+            <div className="text-2xl font-bold">{peakDay.day}</div>
+            <p className="text-xs text-muted-foreground">{peakDay.articles} articles</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Addis Peak Day</CardTitle>
-            <Calendar className="h-4 w-4 text-red-500" />
+            <CardTitle className="text-sm font-medium">Peak Month</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{weekdays[Number.parseInt(peakAddisDay.value, 10)]?.slice(0, 3) || 'N/A'}</div>
-            <p className="text-xs text-muted-foreground">{peakAddisDay.addis_insight} articles</p>
+            <div className="text-2xl font-bold">{peakMonth.month}</div>
+            <p className="text-xs text-muted-foreground">{peakMonth.articles} articles</p>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="hourly" className="w-full">
+      <Tabs defaultValue="weekday" className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="hourly" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            By Hour
-          </TabsTrigger>
           <TabsTrigger value="weekday" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             By Weekday
@@ -126,43 +126,22 @@ async function PublishingContent() {
             By Month
           </TabsTrigger>
           <TabsTrigger value="yearly" className="flex items-center gap-2">
-            <Sun className="h-4 w-4" />
+            <TrendingUp className="h-4 w-4" />
             Yearly Timeline
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="hourly">
-          <Card>
-            <CardHeader>
-              <CardTitle>Publishing by Hour of Day</CardTitle>
-              <CardDescription>When articles are published throughout the day (24-hour format)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <BarChartComponent
-                data={hourlyData}
-                bars={[
-                  { dataKey: 'Shega', color: '#2563eb', name: 'Shega' },
-                  { dataKey: 'Addis Insight', color: '#dc2626', name: 'Addis Insight' },
-                ]}
-                xAxisKey="hour"
-                height={400}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="weekday">
           <Card>
             <CardHeader>
               <CardTitle>Publishing by Day of Week</CardTitle>
-              <CardDescription>Article distribution across weekdays</CardDescription>
+              <CardDescription>Article distribution across weekdays for {siteName}</CardDescription>
             </CardHeader>
             <CardContent>
               <BarChartComponent
                 data={weekdayData}
                 bars={[
-                  { dataKey: 'Shega', color: '#2563eb', name: 'Shega' },
-                  { dataKey: 'Addis Insight', color: '#dc2626', name: 'Addis Insight' },
+                  { dataKey: 'articles', color: siteColor, name: siteName },
                 ]}
                 xAxisKey="day"
                 height={400}
@@ -175,14 +154,13 @@ async function PublishingContent() {
           <Card>
             <CardHeader>
               <CardTitle>Publishing by Month</CardTitle>
-              <CardDescription>Seasonal publishing patterns</CardDescription>
+              <CardDescription>Seasonal publishing patterns for {siteName}</CardDescription>
             </CardHeader>
             <CardContent>
               <BarChartComponent
                 data={monthlyData}
                 bars={[
-                  { dataKey: 'Shega', color: '#2563eb', name: 'Shega' },
-                  { dataKey: 'Addis Insight', color: '#dc2626', name: 'Addis Insight' },
+                  { dataKey: 'articles', color: siteColor, name: siteName },
                 ]}
                 xAxisKey="month"
                 height={400}
@@ -195,143 +173,53 @@ async function PublishingContent() {
           <Card>
             <CardHeader>
               <CardTitle>Yearly Publishing Timeline</CardTitle>
-              <CardDescription>Article publishing trends over the year</CardDescription>
+              <CardDescription>Article publishing trends over the years for {siteName}</CardDescription>
             </CardHeader>
             <CardContent>
               <AreaLineChart
                 data={yearlyTimelineData}
                 lines={[
-                  { dataKey: 'Shega', color: '#2563eb', name: 'Shega' },
-                  { dataKey: 'Addis Insight', color: '#dc2626', name: 'Addis Insight' },
+                  { dataKey: 'articles', color: siteColor, name: siteName },
                 ]}
-                xAxisKey="date"
+                xAxisKey="year"
                 height={400}
               />
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Time of Day Analysis */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sun className="h-5 w-5 text-amber-500" />
-              Daytime Publishing (6AM - 6PM)
-            </CardTitle>
-            <CardDescription>Articles published during work hours</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium">Shega</span>
-                  <span className="text-sm text-muted-foreground">
-                    {hourlyData.slice(6, 18).reduce((sum, h) => sum + h.Shega, 0)} articles
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div 
-                    className="h-full bg-blue-500 rounded-full" 
-                    style={{ 
-                      width: `${(hourlyData.slice(6, 18).reduce((sum, h) => sum + h.Shega, 0) / 
-                        Math.max(1, hourlyData.reduce((sum, h) => sum + h.Shega, 0))) * 100}%` 
-                    }}
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium">Addis Insight</span>
-                  <span className="text-sm text-muted-foreground">
-                    {hourlyData.slice(6, 18).reduce((sum, h) => sum + h['Addis Insight'], 0)} articles
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div 
-                    className="h-full bg-red-500 rounded-full" 
-                    style={{ 
-                      width: `${(hourlyData.slice(6, 18).reduce((sum, h) => sum + h['Addis Insight'], 0) / 
-                        Math.max(1, hourlyData.reduce((sum, h) => sum + h['Addis Insight'], 0))) * 100}%` 
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Moon className="h-5 w-5 text-indigo-500" />
-              Nighttime Publishing (6PM - 6AM)
-            </CardTitle>
-            <CardDescription>Articles published after hours</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium">Shega</span>
-                  <span className="text-sm text-muted-foreground">
-                    {[...hourlyData.slice(0, 6), ...hourlyData.slice(18)].reduce((sum, h) => sum + h.Shega, 0)} articles
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div 
-                    className="h-full bg-blue-500 rounded-full" 
-                    style={{ 
-                      width: `${([...hourlyData.slice(0, 6), ...hourlyData.slice(18)].reduce((sum, h) => sum + h.Shega, 0) / 
-                        Math.max(1, hourlyData.reduce((sum, h) => sum + h.Shega, 0))) * 100}%` 
-                    }}
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium">Addis Insight</span>
-                  <span className="text-sm text-muted-foreground">
-                    {[...hourlyData.slice(0, 6), ...hourlyData.slice(18)].reduce((sum, h) => sum + h['Addis Insight'], 0)} articles
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div 
-                    className="h-full bg-red-500 rounded-full" 
-                    style={{ 
-                      width: `${([...hourlyData.slice(0, 6), ...hourlyData.slice(18)].reduce((sum, h) => sum + h['Addis Insight'], 0) / 
-                        Math.max(1, hourlyData.reduce((sum, h) => sum + h['Addis Insight'], 0))) * 100}%` 
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
 
-export default function PublishingPage() {
+interface PublishingPageProps {
+  readonly searchParams: Promise<SearchParams>;
+}
+
+export default async function PublishingPage({ searchParams }: PublishingPageProps) {
+  const params = await searchParams;
+  const site = (params.site as SiteFilter) || 'shega';
+  
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Publishing Analytics</h1>
-        <p className="text-muted-foreground mt-1">
-          Analyze publishing patterns by time of day, weekday, and month
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Publishing Analytics</h1>
+          <p className="text-muted-foreground mt-1">
+            Analyze publishing patterns by weekday, month, and year
+          </p>
+        </div>
+        <SiteSelector showBothOption={false} />
       </div>
 
       <Suspense fallback={<PublishingSkeleton />}>
-        <PublishingContent />
+        <PublishingContent site={site} />
       </Suspense>
     </div>
   );
 }
 
-const SKELETON_CARD_IDS = ['skeleton-peak-1', 'skeleton-peak-2', 'skeleton-peak-3', 'skeleton-peak-4'] as const;
+const SKELETON_CARD_IDS = ['skeleton-1', 'skeleton-2', 'skeleton-3', 'skeleton-4'] as const;
 
 function PublishingSkeleton() {
   return (
