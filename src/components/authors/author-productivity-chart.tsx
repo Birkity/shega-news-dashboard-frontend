@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Line, LineChart } from 'recharts';
 import { TrendingUp, Calendar, FileText, Activity } from 'lucide-react';
-import { authorsAPI } from '@/lib/api';
+import { authorAnalyticsAPI } from '@/lib/api';
 import type { AuthorProductivity } from '@/types/api';
 import type { SiteFilter } from '@/components/dashboard/site-selector';
 
@@ -76,7 +76,7 @@ export function AuthorProductivityChart({ author, site }: AuthorProductivityChar
       setLoading(true);
       setError(null);
       try {
-        const result = await authorsAPI.getProductivity(author, { days, granularity });
+        const result = await authorAnalyticsAPI.getProductivity(author, { days, granularity });
         setData(result);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch productivity data');

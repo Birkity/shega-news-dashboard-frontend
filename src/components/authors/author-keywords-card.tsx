@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Treemap, ResponsiveContainer, Tooltip } from 'recharts';
-import { Tag, Sparkles, FileText, Hash } from 'lucide-react';
-import { authorsAPI } from '@/lib/api';
+import { Tag, FileText, Hash, Heading } from 'lucide-react';
+import { authorAnalyticsAPI } from '@/lib/api';
 import type { AuthorKeywords } from '@/types/api';
 import { cn } from '@/lib/utils';
 
@@ -126,12 +126,12 @@ function KeywordTooltip({ active, payload }: CustomTooltipProps) {
 }
 
 // Color palette for treemap
-const META_COLORS = [
+const HEADLINE_COLORS = [
   '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a',
   '#60a5fa', '#93c5fd', '#bfdbfe', '#0ea5e9', '#0284c7',
 ];
 
-const NLP_COLORS = [
+const BODY_COLORS = [
   '#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6', '#4c1d95',
   '#a78bfa', '#c4b5fd', '#ddd6fe', '#a855f7', '#9333ea',
 ];
@@ -146,7 +146,7 @@ export function AuthorKeywordsCard({ author }: AuthorKeywordsCardProps) {
       setLoading(true);
       setError(null);
       try {
-        const result = await authorsAPI.getKeywords(author, { limit: 20, include_nlp: true });
+        const result = await authorAnalyticsAPI.getKeywords(author, { limit: 20 });
         setData(result);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch keywords');
@@ -190,7 +190,7 @@ export function AuthorKeywordsCard({ author }: AuthorKeywordsCardProps) {
     );
   }
 
-  if (!data || (!data.meta_keywords?.length && !data.nlp_keywords?.length)) {
+  if (!data || (!data.headline_keywords?.length && !data.body_keywords?.length)) {
     // Determine the site from the data
     const isAddisInsight = data?.stats?.sites?.includes('addis_insight');
     
@@ -224,19 +224,17 @@ export function AuthorKeywordsCard({ author }: AuthorKeywordsCardProps) {
   }
 
   // Transform data for treemap
-  const metaTreemapData: TreemapDataItem[] = data.meta_keywords.map((k, i) => ({
+  const headlineTreemapData: TreemapDataItem[] = data.headline_keywords.map((k, i) => ({
     name: k.keyword,
     size: k.count,
-    fill: META_COLORS[i % META_COLORS.length],
+    fill: HEADLINE_COLORS[i % HEADLINE_COLORS.length],
   }));
 
-  const nlpTreemapData: TreemapDataItem[] = data.nlp_keywords 
-    ? data.nlp_keywords.map((k, i) => ({
-        name: k.keyword,
-        size: k.count,
-        fill: NLP_COLORS[i % NLP_COLORS.length],
-      }))
-    : [];
+  const bodyTreemapData: TreemapDataItem[] = data.body_keywords.map((k, i) => ({
+    name: k.keyword,
+    size: k.count,
+    fill: BODY_COLORS[i % BODY_COLORS.length],
+  }));
 
   return (
     <Card>
@@ -275,26 +273,26 @@ export function AuthorKeywordsCard({ author }: AuthorKeywordsCardProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="meta" className="w-full">
+        <Tabs defaultValue="headline" className="w-full">
           <TabsList className="mb-4">
-            <TabsTrigger value="meta" className="flex items-center gap-2">
-              <Tag className="h-4 w-4" />
-              Meta Keywords ({data.total_unique_meta_keywords})
+            <TabsTrigger value="headline" className="flex items-center gap-2">
+              <Heading className="h-4 w-4" />
+              Headline Keywords ({data.total_unique_headline_keywords})
             </TabsTrigger>
-            {data.nlp_keywords && data.nlp_keywords.length > 0 && (
-              <TabsTrigger value="nlp" className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                NLP Keywords ({data.total_unique_nlp_keywords ?? 0})
+            {data.body_keywords && data.body_keywords.length > 0 && (
+              <TabsTrigger value="body" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Body Keywords ({data.total_unique_body_keywords})
               </TabsTrigger>
             )}
           </TabsList>
           
-          <TabsContent value="meta">
+          <TabsContent value="headline">
             <div className="h-[350px]">
-              {metaTreemapData.length > 0 ? (
+              {headlineTreemapData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <Treemap
-                    data={metaTreemapData}
+                    data={headlineTreemapData}
                     dataKey="size"
                     aspectRatio={4 / 3}
                     stroke="#fff"
@@ -305,19 +303,19 @@ export function AuthorKeywordsCard({ author }: AuthorKeywordsCardProps) {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex h-full items-center justify-center text-muted-foreground">
-                  No meta keywords available
+                  No headline keywords available
                 </div>
               )}
             </div>
           </TabsContent>
           
-          {data.nlp_keywords && data.nlp_keywords.length > 0 && (
-            <TabsContent value="nlp">
+          {data.body_keywords && data.body_keywords.length > 0 && (
+            <TabsContent value="body">
               <div className="h-[350px]">
-                {nlpTreemapData.length > 0 ? (
+                {bodyTreemapData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <Treemap
-                      data={nlpTreemapData}
+                      data={bodyTreemapData}
                       dataKey="size"
                       aspectRatio={4 / 3}
                       stroke="#fff"
@@ -328,7 +326,7 @@ export function AuthorKeywordsCard({ author }: AuthorKeywordsCardProps) {
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex h-full items-center justify-center text-muted-foreground">
-                    No NLP keywords available
+                    No body keywords available
                   </div>
                 )}
               </div>

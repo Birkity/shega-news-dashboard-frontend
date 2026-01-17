@@ -4,16 +4,16 @@ import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, User, ExternalLink, FileText } from 'lucide-react';
-import type { Article } from '@/types/api';
+import { Calendar, User, ExternalLink, FileText, Tag } from 'lucide-react';
+import type { ArticleListItem } from '@/types/api';
 import { cn } from '@/lib/utils';
 
 interface ArticleCardProps {
-  readonly article: Article;
+  readonly article: ArticleListItem;
 }
 
 export function ArticleCard({ article }: Readonly<ArticleCardProps>) {
-  const getSentimentColor = (label?: string) => {
+  const getSentimentColor = (label?: string | null) => {
     if (label === 'positive') return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
     if (label === 'negative') return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
     return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100';
@@ -30,13 +30,6 @@ export function ArticleCard({ article }: Readonly<ArticleCardProps>) {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return `${monthNames[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
   };
-
-  const truncateText = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return text.slice(0, maxLength).trim() + '...';
-  };
-
-  const excerpt = article.body ? truncateText(article.body, 200) : '';
 
   return (
     <Card className="transition-all hover:shadow-md">
@@ -60,7 +53,7 @@ export function ArticleCard({ article }: Readonly<ArticleCardProps>) {
               </span>
               <span className="flex items-center gap-1">
                 <FileText className="h-3.5 w-3.5" />
-                {article.word_count_body?.toLocaleString()} words
+                {article.word_count?.toLocaleString()} words
               </span>
             </div>
           </div>
@@ -69,9 +62,9 @@ export function ArticleCard({ article }: Readonly<ArticleCardProps>) {
             <Badge className={cn('capitalize', getSiteColor(article.site))}>
               {article.site === 'addis_insight' ? 'Addis Insight' : 'Shega'}
             </Badge>
-            {article.sentiment_label && (
-              <Badge className={cn('capitalize', getSentimentColor(article.sentiment_label))}>
-                {article.sentiment_label}
+            {article.sentiment && (
+              <Badge className={cn('capitalize', getSentimentColor(article.sentiment))}>
+                {article.sentiment}
               </Badge>
             )}
           </div>
@@ -79,31 +72,39 @@ export function ArticleCard({ article }: Readonly<ArticleCardProps>) {
       </CardHeader>
 
       <CardContent>
-        {excerpt && (
+        {article.excerpt && (
           <p className="text-sm text-muted-foreground line-clamp-3">
-            {excerpt}
+            {article.excerpt}
           </p>
         )}
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          {/* Categories */}
-          {article.categories?.slice(0, 3).map((category) => (
-            <Badge key={category} variant="outline" className="text-xs">
-              {category}
+          {/* Topic Label */}
+          {article.topic_label && (
+            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+              <Tag className="h-3 w-3" />
+              {article.topic_label}
+            </Badge>
+          )}
+          
+          {/* Keywords */}
+          {article.keywords?.slice(0, 2).map((keyword) => (
+            <Badge key={keyword} variant="outline" className="text-xs">
+              {keyword}
             </Badge>
           ))}
-          {(article.categories?.length ?? 0) > 3 && (
+          {(article.keywords?.length ?? 0) > 2 && (
             <Badge variant="outline" className="text-xs">
-              +{(article.categories?.length ?? 0) - 3} more
+              +{(article.keywords?.length ?? 0) - 2} more
             </Badge>
           )}
           
           <div className="flex-1" />
           
-          {article.full_url && (
+          {article.url && (
             <Button variant="ghost" size="sm" asChild>
               <a 
-                href={article.full_url} 
+                href={article.url} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center gap-1"

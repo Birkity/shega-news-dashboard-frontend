@@ -1,4 +1,5 @@
 // Shega News Analytics Dashboard - API Configuration
+// Based on API Documentation v2.0 (January 15, 2026)
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -9,95 +10,78 @@ export const config = {
   longRevalidate: 3600, // 1 hour for static data
 };
 
+// Complete endpoint mapping from API Documentation v2.0
 export const endpoints = {
-  // Health
+  // ============= Health & System =============
   health: '/health',
   healthReady: '/health/ready',
   healthLive: '/health/live',
 
-  // Dashboard Overview
-  overview: '/analytics/overview',
-  dailyArticles: '/analytics/articles/daily',
-  dashboardSummary: '/analytics/dashboard/summary',
+  // ============= Content Analytics =============
+  // Content Length
+  contentLengthComparison: '/analytics/content-length/comparison',
+  contentLengthDistribution: '/analytics/content-length/distribution',
+  
+  // Content Format
+  contentFormatInsights: '/analytics/content-format/insights',
+  contentFormatTrends: '/analytics/content-format/trends',
+  
+  // Content Elements
+  contentElementsImages: '/analytics/content-elements/images',
 
-  // Articles
-  articles: '/articles',
-  articleById: (id: string) => `/articles/${id}`,
-  articleBySlug: (site: string, slug: string) => `/articles/by-slug/${site}/${slug}`,
-  articleStats: '/articles/stats/summary',
-  articleSamples: '/analytics/articles/samples',
-
-  // Authors
-  topAuthors: '/analytics/authors/top',
-  topAuthorsWithStats: '/analytics/authors/top-with-stats',
-  authorsSentiment: '/analytics/authors/sentiment',
-  authorProductivity: (author: string) => `/analytics/authors/${encodeURIComponent(author)}/productivity`,
-  authorKeywords: (author: string) => `/analytics/authors/${encodeURIComponent(author)}/keywords`,
-
-  // Categories
-  categoriesDistribution: '/analytics/categories/distribution',
-  categoriesTopTopics: '/analytics/categories/top-topics',
-  categoriesTopicComparison: '/analytics/categories/topic-comparison',
-
-  // Keywords
-  topKeywords: '/analytics/keywords/top',
-  headlineKeywords: '/analytics/keywords/headlines',
-  bodyKeywords: '/analytics/keywords/body',
-  keywordsComprehensive: '/analytics/keywords/comprehensive',
-  keywordsBySite: '/analytics/keywords/by-site',
+  // ============= Keywords Analytics =============
+  keywordsTop: '/analytics/keywords/top',
   keywordsTrending: '/analytics/keywords/trending',
+  keywordsBySite: '/analytics/keywords/by-site',
 
-  // Topics
-  topicsEvolution: '/analytics/topics/evolution',
-  topicsSpikes: '/analytics/topics/spikes',
-  topicsSentiment: '/analytics/topics/sentiment',
-  topicsSentimentDistribution: '/analytics/topics/sentiment-distribution',
-  topicsModeling: '/analytics/topics/modeling',
-  topicsTreemap: '/analytics/topics/treemap',
-  topicsSpikeTimeline: '/analytics/topics/spike-timeline',
+  // ============= Topics Analytics =============
+  topicsLabels: '/analytics/topics/labels',
+  topicsLabelsBySite: '/analytics/topics/labels-by-site',
+  topicsLabelsOverTime: '/analytics/topics/labels-over-time',
 
-  // Sentiment
-  sentimentTimeline: '/analytics/sentiment/timeline',
-  topPositive: '/analytics/sentiment/top-positive',
-  topNegative: '/analytics/sentiment/top-negative',
+  // ============= Sentiment Analytics =============
   sentimentDistribution: '/analytics/sentiment/distribution',
+  sentimentTrends: '/analytics/sentiment/trends',
 
-  // NLP
-  nlpSentimentSummary: '/analytics/nlp/sentiment/summary',
-  nlpSentimentBySite: '/analytics/nlp/sentiment/by-site',
-  nlpTopEntities: '/analytics/nlp/entities/top',
+  // ============= NLP & Entity Analytics =============
   nlpEntitiesPeople: '/analytics/nlp/entities/people',
   nlpEntitiesOrganizations: '/analytics/nlp/entities/organizations',
   nlpEntitiesLocations: '/analytics/nlp/entities/locations',
+  nlpEntitiesTop: '/analytics/nlp/entities/top',
+  nlpEnrichmentStatus: '/analytics/nlp/enrichment-status',
   nlpReadabilitySummary: '/analytics/nlp/readability/summary',
   nlpReadabilityBySite: '/analytics/nlp/readability/by-site',
-  nlpExtractedKeywords: '/analytics/nlp/keywords/extracted',
-  nlpEnrichmentStatus: '/analytics/nlp/enrichment-status',
 
-  // Publishing
-  publishingTrends: '/analytics/publishing/trends',
-  publishingYearly: '/analytics/publishing/yearly',
+  // ============= Author Analytics =============
+  authorsOverviewCards: '/analytics/authors/overview-cards',
+  authorsList: '/analytics/authors/list',
+  authorsSentiment: '/analytics/authors/sentiment',
+  authorsProductivity: (author: string) => `/analytics/authors/${encodeURIComponent(author)}/productivity`,
+  authorsKeywords: (author: string) => `/analytics/authors/${encodeURIComponent(author)}/keywords`,
+  authorsSentimentDetail: (author: string) => `/analytics/authors/${encodeURIComponent(author)}/sentiment-detail`,
 
-  // Comparison
-  compareKeywords: '/analytics/compare/keywords',
-  compareEntities: '/analytics/compare/entities',
-  compareOverview: '/analytics/compare/overview',
-  comparePublishingTrends: '/analytics/compare/publishing-trends',
-  compareDuplication: '/analytics/compare/duplication',
-  compareCoverageGaps: '/analytics/compare/coverage-gaps',
-  compareInsights: '/analytics/compare/insights',
+  // ============= Publishing Analytics =============
+  publishingCalendarHeatmap: '/analytics/publishing/calendar-heatmap',
+  publishingYearlyComparison: '/analytics/publishing/yearly-comparison',
+  publishingMonthlyCalendar: '/analytics/publishing/monthly-calendar',
 
-  // Content
-  contentLengthComparison: '/analytics/content-length/comparison',
-  contentLengthDistribution: '/analytics/content-length/distribution',
+  // ============= Competitive Analysis =============
+  compareContentOverlap: '/analytics/compare/content-overlap',
+  compareTopicOverlap: '/analytics/compare/topic-overlap',
+  compareCompetitiveSummary: '/analytics/compare/competitive-summary',
 
-  // Scraping
+  // ============= Article Drill-Down =============
+  articlesList: '/analytics/articles/list',
+  articlesByKeyword: '/analytics/articles/by-keyword',
+  articlesByTopic: '/analytics/articles/by-topic',
+  articlesByAuthor: '/analytics/articles/by-author',
+
+  // ============= Scraping & Scheduler =============
   scrapeTrigger: '/scraping/trigger',
   scrapeStatus: (taskId: string) => `/scraping/status/${taskId}`,
   scrapeAllStatus: '/scraping/status',
   scrapePreview: (site: string) => `/scraping/preview/${site}`,
-
-  // Scheduler
+  
   schedulerStatus: '/scheduler/status',
   schedulerTrigger: '/scheduler/trigger',
   schedulerHealth: '/scheduler/health',

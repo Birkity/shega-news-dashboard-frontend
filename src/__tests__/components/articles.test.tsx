@@ -24,19 +24,17 @@ import { ArticlesPagination } from '@/components/articles/articles-pagination';
 
 describe('ArticleCard', () => {
   const mockArticle = {
-    id: '1',
     title: 'Test Article Title',
     slug: 'test-article-title',
-    body: 'This is a test article body content that should be displayed as an excerpt in the card component.',
+    excerpt: 'This is a test article body content that should be displayed as an excerpt in the card component.',
     author: 'John Doe',
     posted_date: '2024-01-15T10:00:00Z',
     site: 'shega' as const,
-    full_url: 'https://example.com/article',
-    word_count_body: 500,
-    categories: ['Technology', 'Business', 'Innovation', 'Startup'],
+    url: 'https://example.com/article',
+    word_count: 500,
     keywords: ['tech', 'startup'],
-    sentiment_label: 'positive' as const,
-    sentiment_polarity: 0.5,
+    sentiment: 'positive' as const,
+    polarity: 0.5,
   };
 
   it('renders article title', () => {
@@ -76,23 +74,20 @@ describe('ArticleCard', () => {
   });
 
   it('renders negative sentiment badge', () => {
-    const negativeArticle = { ...mockArticle, sentiment_label: 'negative' as const };
+    const negativeArticle = { ...mockArticle, sentiment: 'negative' as const };
     render(<ArticleCard article={negativeArticle} />);
     expect(screen.getByText('negative')).toBeInTheDocument();
   });
 
   it('renders neutral sentiment badge', () => {
-    const neutralArticle = { ...mockArticle, sentiment_label: 'neutral' as const };
+    const neutralArticle = { ...mockArticle, sentiment: 'neutral' as const };
     render(<ArticleCard article={neutralArticle} />);
     expect(screen.getByText('neutral')).toBeInTheDocument();
   });
 
-  it('renders categories', () => {
+  it('renders keywords', () => {
     render(<ArticleCard article={mockArticle} />);
-    expect(screen.getByText('Technology')).toBeInTheDocument();
-    expect(screen.getByText('Business')).toBeInTheDocument();
-    expect(screen.getByText('Innovation')).toBeInTheDocument();
-    expect(screen.getByText('+1 more')).toBeInTheDocument();
+    expect(screen.getByText('tech')).toBeInTheDocument();
   });
 
   it('renders article without author', () => {
@@ -102,28 +97,28 @@ describe('ArticleCard', () => {
     expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
   });
 
-  it('renders article without body', () => {
-    const articleWithoutBody = { ...mockArticle, body: '' };
-    render(<ArticleCard article={articleWithoutBody} />);
+  it('renders article without excerpt', () => {
+    const articleWithoutExcerpt = { ...mockArticle, excerpt: '' };
+    render(<ArticleCard article={articleWithoutExcerpt} />);
     expect(screen.getByText('Test Article Title')).toBeInTheDocument();
   });
 
-  it('truncates long body text', () => {
-    const longBody = 'A'.repeat(300);
-    const articleWithLongBody = { ...mockArticle, body: longBody };
-    render(<ArticleCard article={articleWithLongBody} />);
+  it('truncates long excerpt text', () => {
+    const longExcerpt = 'A'.repeat(300);
+    const articleWithLongExcerpt = { ...mockArticle, excerpt: longExcerpt };
+    render(<ArticleCard article={articleWithLongExcerpt} />);
     // Should truncate at 200 characters with ...
     expect(screen.getByText(/^A+\.\.\.$/)).toBeInTheDocument();
   });
 
-  it('renders article without categories', () => {
-    const articleWithoutCategories = { ...mockArticle, categories: [] };
-    render(<ArticleCard article={articleWithoutCategories} />);
+  it('renders article without keywords', () => {
+    const articleWithoutKeywords = { ...mockArticle, keywords: [] };
+    render(<ArticleCard article={articleWithoutKeywords} />);
     expect(screen.getByText('Test Article Title')).toBeInTheDocument();
   });
 
-  it('renders article without sentiment label', () => {
-    const articleWithoutSentiment = { ...mockArticle, sentiment_label: undefined };
+  it('renders article without sentiment', () => {
+    const articleWithoutSentiment = { ...mockArticle, sentiment: undefined };
     render(<ArticleCard article={articleWithoutSentiment} />);
     expect(screen.getByText('Test Article Title')).toBeInTheDocument();
     expect(screen.queryByText('positive')).not.toBeInTheDocument();

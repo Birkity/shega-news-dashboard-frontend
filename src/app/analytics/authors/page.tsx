@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { authorsAPI } from '@/lib/api';
+import { authorAnalyticsAPI } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChartComponent } from '@/components/charts/bar-chart';
@@ -20,12 +20,12 @@ async function AuthorsContent({ site, selectedAuthor }: { readonly site: SiteFil
   const effectiveSite = site === 'all' ? 'shega' : site;
   const siteParam: Site = effectiveSite;
   
-  let topAuthors, authorsWithStats;
+  let topAuthorsData, authorsWithStatsData;
   
   try {
-    [topAuthors, authorsWithStats] = await Promise.all([
-      authorsAPI.getTop({ limit: 10, site: siteParam }),
-      authorsAPI.getTopWithStats({ limit: 50, site: siteParam }),
+    [topAuthorsData, authorsWithStatsData] = await Promise.all([
+      authorAnalyticsAPI.getList({ site: siteParam }),
+      authorAnalyticsAPI.getList({ site: siteParam }),
     ]);
   } catch (error) {
     console.error('Error fetching authors:', error);
@@ -36,7 +36,10 @@ async function AuthorsContent({ site, selectedAuthor }: { readonly site: SiteFil
     );
   }
 
-  const chartData = topAuthors.slice(0, 10).map((author) => ({
+  const topAuthors = topAuthorsData.authors.slice(0, 10);
+  const authorsWithStats = authorsWithStatsData.authors;
+
+  const chartData = topAuthors.slice(0, 10).map((author: any) => ({
     author: author.author.length > 15 ? `${author.author.slice(0, 15)}...` : author.author,
     fullName: author.author,
     articles: author.article_count,
@@ -47,13 +50,13 @@ async function AuthorsContent({ site, selectedAuthor }: { readonly site: SiteFil
 
   // Calculate overview stats
   const totalAuthors = authorsWithStats.length;
-  const totalArticles = authorsWithStats.reduce((sum, a) => sum + a.article_count, 0);
+  const totalArticles = authorsWithStats.reduce((sum: number, a: any) => sum + a.article_count, 0);
   const avgArticlesPerAuthor = totalAuthors > 0 ? totalArticles / totalAuthors : 0;
   const avgWordCount = authorsWithStats.length > 0 
-    ? authorsWithStats.reduce((sum, a) => sum + a.avg_word_count, 0) / authorsWithStats.length 
+    ? authorsWithStats.reduce((sum: number, a: any) => sum + a.avg_word_count, 0) / authorsWithStats.length 
     : 0;
   const avgPolarity = authorsWithStats.length > 0
-    ? authorsWithStats.reduce((sum, a) => sum + a.avg_polarity, 0) / authorsWithStats.length
+    ? authorsWithStats.reduce((sum: number, a: any) => sum + a.avg_polarity, 0) / authorsWithStats.length
     : 0;
 
   return (
@@ -124,7 +127,7 @@ async function AuthorsContent({ site, selectedAuthor }: { readonly site: SiteFil
 
       {/* Author Selection and Analytics */}
       <AuthorAnalyticsClient 
-        authors={authorsWithStats} 
+        authors={authorsWithStats as any} 
         selectedAuthor={selectedAuthor || (authorsWithStats.length > 0 ? authorsWithStats[0].author : undefined)}
         site={effectiveSite}
       />

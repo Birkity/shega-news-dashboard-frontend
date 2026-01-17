@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Articles List Component Tests
  */

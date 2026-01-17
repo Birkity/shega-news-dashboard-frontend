@@ -1,46 +1,32 @@
 import { Suspense } from 'react';
-import { topicsAPI } from '@/lib/api';
+import Link from 'next/link';
+import { topicsAnalyticsAPI } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AreaLineChart } from '@/components/charts/line-chart';
 import { BarChartComponent } from '@/components/charts/bar-chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingUp, Sparkles, Calendar, AlertTriangle } from 'lucide-react';
+import { TrendingUp, Sparkles, Tag, Layers, ExternalLink } from 'lucide-react';
 import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
-import type { Site, TopicSpike } from '@/types/api';
+import type { Site } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
-
-// Helper functions to avoid nested ternaries
-function getSpikeVariant(spike: TopicSpike): 'default' | 'destructive' | 'secondary' {
-  if (spike.is_new) return 'default';
-  if ((spike.spike_ratio ?? 0) > 2) return 'destructive';
-  return 'secondary';
-}
-
-function getSpikeLabel(spike: TopicSpike): string {
-  if (spike.is_new) return 'New';
-  if (spike.spike_ratio) return `${spike.spike_ratio.toFixed(1)}x spike`;
-  return 'N/A';
-}
 
 interface SearchParams {
   site?: string;
 }
 
 async function TopicsContent({ site }: { readonly site: SiteFilter }) {
-  // For topics page, we don't support 'all' - default to 'shega'
-  const effectiveSite = site === 'all' ? 'shega' : site;
-  const siteParam: Site = effectiveSite;
+  const siteParam: Site | undefined = site === 'all' ? undefined : site;
   
-  let topicEvolution, topicSpikes, topicSentiment;
+  let topicLabels, topicLabelsBySite, topicLabelsOverTime;
   
   try {
-    [topicEvolution, topicSpikes, topicSentiment] = await Promise.all([
-      topicsAPI.getEvolution({ limit: 8, site: siteParam }),
-      topicsAPI.getSpikes({ weeks: 4, site: siteParam }),
-      topicsAPI.getSentimentDistribution({ limit: 12, site: siteParam }),
+    [topicLabels, topicLabelsBySite, topicLabelsOverTime] = await Promise.all([
+      topicsAnalyticsAPI.getLabels({ limit: 20, site: siteParam }),
+      topicsAnalyticsAPI.getLabelsBySite({ limit: 10 }),
+      topicsAnalyticsAPI.getLabelsOverTime({ months: 6, top_n: 10, site: siteParam }),
     ]);
   } catch (error) {
     console.error('Error fetching topics data:', error);
@@ -51,35 +37,24 @@ async function TopicsContent({ site }: { readonly site: SiteFilter }) {
     );
   }
 
-  // Transform topic evolution for the chart - now based on months and top_keywords
-  const evolutionData = topicEvolution.evolution.map((month) => {
-    const dataPoint: Record<string, string | number> = { month: month.month };
-    month.top_keywords.slice(0, 5).forEach((kw) => {
-      dataPoint[kw.keyword] = kw.count;
-    });
-    return dataPoint;
-  });
-
-  // Get all unique keywords from evolution data
-  const allKeywords = new Set<string>();
-  topicEvolution.evolution.forEach((month) => {
-    month.top_keywords.forEach((kw) => allKeywords.add(kw.keyword));
-  });
-
-  const topicColors = ['#2563eb', '#8b5cf6', '#ec4899', '#f97316', '#22c55e', '#06b6d4', '#eab308', '#f43f5e'];
-  const evolutionLines = Array.from(allKeywords).slice(0, 8).map((keyword, i) => ({
-    dataKey: keyword,
-    color: topicColors[i % topicColors.length],
-    name: keyword,
+  // Transform topic labels over time for the chart
+  const evolutionData = topicLabelsOverTime.timeline.map((month: Record<string, number | string>) => ({
+    ...month,
   }));
 
-  // Transform sentiment data for stacked bar
-  const sentimentData = topicSentiment.map((topic) => ({
-    keyword: topic.keyword.length > 12 ? `${topic.keyword.slice(0, 12)}...` : topic.keyword,
-    positive: topic.positive,
-    neutral: topic.neutral,
-    negative: topic.negative,
-    total: topic.positive + topic.neutral + topic.negative,
+  // Get tracked topics for the chart lines
+  const topicColors = ['#2563eb', '#8b5cf6', '#ec4899', '#f97316', '#22c55e', '#06b6d4', '#eab308', '#f43f5e', '#14b8a6', '#a855f7'];
+  const evolutionLines = topicLabelsOverTime.tracked_topics.slice(0, 10).map((topic: string, i: number) => ({
+    dataKey: topic,
+    color: topicColors[i % topicColors.length],
+    name: topic,
+  }));
+
+  // Transform topic labels for bar chart
+  const labelsBarData = topicLabels.labels.slice(0, 12).map((label: { topic_label: string; article_count: number; avg_sentiment: number }) => ({
+    topic: label.topic_label.length > 15 ? `${label.topic_label.slice(0, 15)}...` : label.topic_label,
+    articles: label.article_count,
+    sentiment: Math.round(label.avg_sentiment * 100),
   }));
 
   return (
@@ -88,58 +63,58 @@ async function TopicsContent({ site }: { readonly site: SiteFilter }) {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Months Tracked</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Articles</CardTitle>
             <Sparkles className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{topicEvolution.months}</div>
-            <p className="text-xs text-muted-foreground">months of data</p>
+            <div className="text-2xl font-bold">{topicLabels.total_articles.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">in the database</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Spikes</CardTitle>
+            <CardTitle className="text-sm font-medium">Labeled Articles</CardTitle>
+            <Tag className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{topicLabels.total_with_labels.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">{topicLabels.coverage_percentage.toFixed(1)}% coverage</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Top Topic</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{topicSpikes.length}</div>
-            <p className="text-xs text-muted-foreground">detected spikes</p>
+            <div className="text-lg font-bold truncate">{topicLabels.labels[0]?.topic_label || 'N/A'}</div>
+            <p className="text-xs text-muted-foreground">{topicLabels.labels[0]?.article_count || 0} articles</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Top Spike</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <CardTitle className="text-sm font-medium">Topics Tracked</CardTitle>
+            <Layers className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold truncate">{topicSpikes[0]?.keyword || 'N/A'}</div>
-            <p className="text-xs text-muted-foreground">Ratio: {topicSpikes[0]?.spike_ratio?.toFixed(1) || 'N/A'}x</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Unique Keywords</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{allKeywords.size}</div>
-            <p className="text-xs text-muted-foreground">keywords tracked</p>
+            <div className="text-2xl font-bold">{topicLabelsOverTime.tracked_topics.length}</div>
+            <p className="text-xs text-muted-foreground">unique topics</p>
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="evolution" className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="evolution">Topic Evolution</TabsTrigger>
-          <TabsTrigger value="spikes">Topic Spikes</TabsTrigger>
-          <TabsTrigger value="sentiment">Topic Sentiment</TabsTrigger>
+          <TabsTrigger value="evolution">Topic Trends</TabsTrigger>
+          <TabsTrigger value="distribution">Distribution</TabsTrigger>
+          <TabsTrigger value="bysite">By Site</TabsTrigger>
         </TabsList>
 
         <TabsContent value="evolution">
           <Card>
             <CardHeader>
-              <CardTitle>Topic Evolution Over Time</CardTitle>
-              <CardDescription>How key topics have trended over the analysis period</CardDescription>
+              <CardTitle>Topic Trends Over Time</CardTitle>
+              <CardDescription>How topic labels have trended over the past {topicLabelsOverTime.months} months</CardDescription>
             </CardHeader>
             <CardContent>
               <AreaLineChart
@@ -152,91 +127,111 @@ async function TopicsContent({ site }: { readonly site: SiteFilter }) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="spikes">
+        <TabsContent value="distribution">
           <Card>
             <CardHeader>
-              <CardTitle>Topic Spikes</CardTitle>
-              <CardDescription>Keywords that experienced sudden increases in coverage</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {topicSpikes.slice(0, 15).map((spike, i) => (
-                  <div
-                    key={spike.keyword}
-                    className="flex items-center gap-4 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
-                      {i + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{spike.keyword}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Recent: {spike.recent_count} • Previous: {spike.previous_count}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant={getSpikeVariant(spike)}>
-                        {getSpikeLabel(spike)}
-                      </Badge>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {spike.recent_count} recent articles
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="sentiment">
-          <Card>
-            <CardHeader>
-              <CardTitle>Topic Sentiment Distribution</CardTitle>
-              <CardDescription>Sentiment breakdown across top topics</CardDescription>
+              <CardTitle>Topic Distribution</CardTitle>
+              <CardDescription>Article count by topic label</CardDescription>
             </CardHeader>
             <CardContent>
               <BarChartComponent
-                data={sentimentData}
+                data={labelsBarData}
                 bars={[
-                  { dataKey: 'positive', color: '#22c55e', name: 'Positive', stackId: 'stack' },
-                  { dataKey: 'neutral', color: '#6b7280', name: 'Neutral', stackId: 'stack' },
-                  { dataKey: 'negative', color: '#ef4444', name: 'Negative', stackId: 'stack' },
+                  { dataKey: 'articles', color: '#2563eb', name: 'Articles' },
                 ]}
-                xAxisKey="keyword"
+                xAxisKey="topic"
                 height={450}
                 layout="vertical"
               />
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="bysite">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Badge className="bg-blue-500">Shega</Badge>
+                  Top Topics
+                </CardTitle>
+                <CardDescription>{topicLabelsBySite.by_site?.shega?.total_labeled || 0} labeled articles</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {topicLabelsBySite.by_site?.shega?.labels?.slice(0, 10).map((label: { topic_label: string; count: number }, i: number) => (
+                    <Link 
+                      key={label.topic_label} 
+                      href={`/articles?topic_label=${encodeURIComponent(label.topic_label)}&site=shega`}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors group"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold text-sm">
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate group-hover:text-primary">{label.topic_label}</p>
+                      </div>
+                      <Badge variant="outline">{label.count}</Badge>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </Link>
+                  )) || <p className="text-muted-foreground">No data available</p>}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Badge className="bg-green-500">Addis Insight</Badge>
+                  Top Topics
+                </CardTitle>
+                <CardDescription>{topicLabelsBySite.by_site?.addis_insight?.total_labeled || 0} labeled articles</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {topicLabelsBySite.by_site?.addis_insight?.labels?.slice(0, 10).map((label: { topic_label: string; count: number }, i: number) => (
+                    <Link 
+                      key={label.topic_label} 
+                      href={`/articles?topic_label=${encodeURIComponent(label.topic_label)}&site=addis_insight`}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors group"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 font-bold text-sm">
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate group-hover:text-primary">{label.topic_label}</p>
+                      </div>
+                      <Badge variant="outline">{label.count}</Badge>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </Link>
+                  )) || <p className="text-muted-foreground">No data available</p>}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
 
-      {/* Topic Tags */}
+      {/* Topic Tags - Clickable */}
       <Card>
         <CardHeader>
-          <CardTitle>All Tracked Topics</CardTitle>
-          <CardDescription>Topics being monitored for trends and spikes</CardDescription>
+          <CardTitle>All Topic Labels</CardTitle>
+          <CardDescription>Topics identified using {topicLabels.methodology} - click to view articles</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            {Array.from(allKeywords).slice(0, 20).map((keyword, i) => (
-              <Badge
-                key={keyword}
-                style={{ backgroundColor: topicColors[i % topicColors.length] }}
-                className="text-white text-sm py-1.5 px-3"
+            {topicLabels.labels.map((label: { topic_label: string; article_count: number; percentage: number }, i: number) => (
+              <Link
+                key={label.topic_label}
+                href={`/articles?topic_label=${encodeURIComponent(label.topic_label)}`}
               >
-                {keyword}
-              </Badge>
-            ))}
-            {topicSpikes.filter(s => !allKeywords.has(s.keyword)).slice(0, 10).map((spike) => (
-              <Badge
-                key={spike.keyword}
-                variant="outline"
-                className="text-sm py-1.5 px-3"
-              >
-                {spike.keyword}
-              </Badge>
+                <Badge
+                  style={{ backgroundColor: topicColors[i % topicColors.length] }}
+                  className="text-white text-sm py-1.5 px-3 cursor-pointer hover:opacity-80 transition-opacity"
+                >
+                  {label.topic_label} ({label.article_count})
+                </Badge>
+              </Link>
             ))}
           </div>
         </CardContent>
@@ -251,7 +246,7 @@ interface TopicsPageProps {
 
 export default async function TopicsPage({ searchParams }: TopicsPageProps) {
   const params = await searchParams;
-  const site = (params.site as SiteFilter) || 'shega'; // Default to shega
+  const site = (params.site as SiteFilter) || 'all';
 
   return (
     <div className="space-y-6">
@@ -259,10 +254,10 @@ export default async function TopicsPage({ searchParams }: TopicsPageProps) {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Topics Analytics</h1>
           <p className="text-muted-foreground mt-1">
-            Track topic evolution, spikes, and sentiment over time
+            Track topic labels, trends, and distribution over time
           </p>
         </div>
-        <SiteSelector showBothOption={false} />
+        <SiteSelector />
       </div>
 
       <Suspense fallback={<TopicsSkeleton />}>

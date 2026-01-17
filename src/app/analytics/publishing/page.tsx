@@ -1,12 +1,14 @@
 import { Suspense } from 'react';
-import { publishingAPI } from '@/lib/api';
+import { publishingAnalyticsAPI } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChartComponent } from '@/components/charts/bar-chart';
 import { AreaLineChart } from '@/components/charts/line-chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Activity, FileText, TrendingUp } from 'lucide-react';
+import { Calendar, Activity, FileText, TrendingUp, BarChart2 } from 'lucide-react';
 import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
+import type { Site } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,16 +16,22 @@ interface SearchParams {
   site?: string;
 }
 
+interface CalendarHeatmapDay {
+  date: string;
+  total: number;
+  shega: number;
+  addis_insight: number;
+}
+
 async function PublishingContent({ site }: { readonly site: SiteFilter }) {
-  // For publishing page, we don't support 'all' - default to 'shega'
-  const effectiveSite = site === 'all' ? 'shega' : site;
+  const siteParam: Site | undefined = site === 'all' ? undefined : site;
   
-  let publishingTrends, yearlyAnalysis;
+  let calendarHeatmap, yearlyComparison;
   
   try {
-    [publishingTrends, yearlyAnalysis] = await Promise.all([
-      publishingAPI.getTrends(),
-      publishingAPI.getYearly(),
+    [calendarHeatmap, yearlyComparison] = await Promise.all([
+      publishingAnalyticsAPI.getCalendarHeatmap({ months: 12, site: siteParam }),
+      publishingAnalyticsAPI.getYearlyComparison({ site: siteParam }),
     ]);
   } catch (error) {
     console.error('Error fetching publishing data:', error);
@@ -34,40 +42,76 @@ async function PublishingContent({ site }: { readonly site: SiteFilter }) {
     );
   }
 
-  const siteName = effectiveSite === 'shega' ? 'Shega Media' : 'Addis Insight';
-  const siteColor = effectiveSite === 'shega' ? '#2563eb' : '#16a34a';
+  // Process calendar heatmap data
+  const heatmapData = calendarHeatmap?.heatmap_data || [];
+  const stats = calendarHeatmap?.statistics;
 
-  // Get site-specific data
-  const getSiteValue = (item: { shega: number; addis_insight: number }) => 
-    effectiveSite === 'shega' ? item.shega : item.addis_insight;
+  // Calculate weekday totals from heatmap data
+  const weekdayTotals: Record<string, { shega: number; addis: number }> = {
+    'Monday': { shega: 0, addis: 0 },
+    'Tuesday': { shega: 0, addis: 0 },
+    'Wednesday': { shega: 0, addis: 0 },
+    'Thursday': { shega: 0, addis: 0 },
+    'Friday': { shega: 0, addis: 0 },
+    'Saturday': { shega: 0, addis: 0 },
+    'Sunday': { shega: 0, addis: 0 },
+  };
 
-  // Transform weekday data
-  const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const weekdayData = publishingTrends.by_weekday.map((item) => ({
-    day: weekdays[Number.parseInt(item.value, 10)] || item.value,
-    articles: getSiteValue(item),
+  heatmapData.forEach((day: CalendarHeatmapDay) => {
+    const date = new Date(day.date);
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+    if (weekdayTotals[weekday]) {
+      weekdayTotals[weekday].shega += day.shega;
+      weekdayTotals[weekday].addis += day.addis_insight;
+    }
+  });
+
+  const weekdayData = Object.entries(weekdayTotals).map(([day, totals]) => ({
+    day,
+    shega: totals.shega,
+    addis: totals.addis,
+    total: totals.shega + totals.addis,
   }));
 
-  // Transform monthly data
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const monthlyData = publishingTrends.by_month.map((item) => ({
-    month: months[Number.parseInt(item.value, 10) - 1] || item.value,
-    articles: getSiteValue(item),
+  // Calculate monthly totals from heatmap data
+  const monthlyTotals: Record<string, { shega: number; addis: number }> = {};
+  heatmapData.forEach((day: CalendarHeatmapDay) => {
+    const monthKey = day.date.substring(0, 7); // YYYY-MM format
+    if (!monthlyTotals[monthKey]) {
+      monthlyTotals[monthKey] = { shega: 0, addis: 0 };
+    }
+    monthlyTotals[monthKey].shega += day.shega;
+    monthlyTotals[monthKey].addis += day.addis_insight;
+  });
+
+  const monthlyData = Object.entries(monthlyTotals)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, totals]) => {
+      const date = new Date(month + '-01');
+      return {
+        month: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+        shega: totals.shega,
+        addis: totals.addis,
+        total: totals.shega + totals.addis,
+      };
+    });
+
+  // Process yearly data
+  const yearlyData = yearlyComparison?.yearly_data || [];
+  const yearlyChartData = yearlyData.map((year) => ({
+    year: year.year.toString(),
+    shega: year.shega.articles,
+    addis: year.addis_insight.articles,
+    total: year.shega.articles + year.addis_insight.articles,
   }));
 
-  // Transform yearly timeline
-  const yearlyTimelineData = yearlyAnalysis.years?.map((item) => ({
-    year: item.year.toString(),
-    articles: effectiveSite === 'shega' ? item.shega.articles : item.addis_insight.articles,
-  })) || [];
-
-  // Calculate totals
-  const totalArticles = publishingTrends.by_weekday.reduce((sum, d) => sum + getSiteValue(d), 0);
-  const avgPerDay = weekdayData.length > 0 
-    ? Math.round(weekdayData.reduce((sum, d) => sum + d.articles, 0) / weekdayData.length)
-    : 0;
-  const peakDay = weekdayData.reduce((max, d) => d.articles > max.articles ? d : max, weekdayData[0] || { day: 'N/A', articles: 0 });
-  const peakMonth = monthlyData.reduce((max, m) => m.articles > max.articles ? m : max, monthlyData[0] || { month: 'N/A', articles: 0 });
+  // Calculate totals for KPIs
+  const totalArticles = heatmapData.reduce((sum: number, day: CalendarHeatmapDay) => sum + day.total, 0);
+  const shegaTotal = heatmapData.reduce((sum: number, day: CalendarHeatmapDay) => sum + day.shega, 0);
+  const addisTotal = heatmapData.reduce((sum: number, day: CalendarHeatmapDay) => sum + day.addis_insight, 0);
+  
+  // Find peak day
+  const peakDay = weekdayData.reduce((max, day) => day.total > max.total ? day : max, weekdayData[0] || { day: 'N/A', total: 0 });
 
   return (
     <div className="space-y-6">
@@ -80,7 +124,7 @@ async function PublishingContent({ site }: { readonly site: SiteFilter }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalArticles.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">{siteName}</p>
+            <p className="text-xs text-muted-foreground">Last 12 months</p>
           </CardContent>
         </Card>
         <Card>
@@ -89,8 +133,8 @@ async function PublishingContent({ site }: { readonly site: SiteFilter }) {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{avgPerDay}</div>
-            <p className="text-xs text-muted-foreground">Articles per weekday</p>
+            <div className="text-2xl font-bold">{stats?.avg_articles_per_day?.toFixed(1) || 'N/A'}</div>
+            <p className="text-xs text-muted-foreground">Articles per day</p>
           </CardContent>
         </Card>
         <Card>
@@ -100,48 +144,40 @@ async function PublishingContent({ site }: { readonly site: SiteFilter }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{peakDay.day}</div>
-            <p className="text-xs text-muted-foreground">{peakDay.articles} articles</p>
+            <p className="text-xs text-muted-foreground">{peakDay.total} articles</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Peak Month</CardTitle>
+            <CardTitle className="text-sm font-medium">Max In a Day</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{peakMonth.month}</div>
-            <p className="text-xs text-muted-foreground">{peakMonth.articles} articles</p>
+            <div className="text-2xl font-bold">{stats?.max_articles_per_day || 'N/A'}</div>
+            <p className="text-xs text-muted-foreground">articles in single day</p>
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="weekday" className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="weekday" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            By Weekday
-          </TabsTrigger>
-          <TabsTrigger value="monthly" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            By Month
-          </TabsTrigger>
-          <TabsTrigger value="yearly" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Yearly Timeline
-          </TabsTrigger>
+          <TabsTrigger value="weekday">By Weekday</TabsTrigger>
+          <TabsTrigger value="monthly">Monthly Trends</TabsTrigger>
+          <TabsTrigger value="yearly">Yearly Comparison</TabsTrigger>
         </TabsList>
 
         <TabsContent value="weekday">
           <Card>
             <CardHeader>
               <CardTitle>Publishing by Day of Week</CardTitle>
-              <CardDescription>Article distribution across weekdays for {siteName}</CardDescription>
+              <CardDescription>Article distribution across weekdays</CardDescription>
             </CardHeader>
             <CardContent>
               <BarChartComponent
                 data={weekdayData}
                 bars={[
-                  { dataKey: 'articles', color: siteColor, name: siteName },
+                  { dataKey: 'shega', color: '#2563eb', name: 'Shega', stackId: 'stack' },
+                  { dataKey: 'addis', color: '#16a34a', name: 'Addis Insight', stackId: 'stack' },
                 ]}
                 xAxisKey="day"
                 height={400}
@@ -153,14 +189,15 @@ async function PublishingContent({ site }: { readonly site: SiteFilter }) {
         <TabsContent value="monthly">
           <Card>
             <CardHeader>
-              <CardTitle>Publishing by Month</CardTitle>
-              <CardDescription>Seasonal publishing patterns for {siteName}</CardDescription>
+              <CardTitle>Monthly Publishing Trends</CardTitle>
+              <CardDescription>Article volume over the past months</CardDescription>
             </CardHeader>
             <CardContent>
-              <BarChartComponent
+              <AreaLineChart
                 data={monthlyData}
-                bars={[
-                  { dataKey: 'articles', color: siteColor, name: siteName },
+                lines={[
+                  { dataKey: 'shega', color: '#2563eb', name: 'Shega' },
+                  { dataKey: 'addis', color: '#16a34a', name: 'Addis Insight' },
                 ]}
                 xAxisKey="month"
                 height={400}
@@ -170,24 +207,125 @@ async function PublishingContent({ site }: { readonly site: SiteFilter }) {
         </TabsContent>
 
         <TabsContent value="yearly">
-          <Card>
-            <CardHeader>
-              <CardTitle>Yearly Publishing Timeline</CardTitle>
-              <CardDescription>Article publishing trends over the years for {siteName}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AreaLineChart
-                data={yearlyTimelineData}
-                lines={[
-                  { dataKey: 'articles', color: siteColor, name: siteName },
-                ]}
-                xAxisKey="year"
-                height={400}
-              />
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Yearly Article Volume</CardTitle>
+                <CardDescription>Historical publishing volume by year</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BarChartComponent
+                  data={yearlyChartData}
+                  bars={[
+                    { dataKey: 'shega', color: '#2563eb', name: 'Shega', stackId: 'stack' },
+                    { dataKey: 'addis', color: '#16a34a', name: 'Addis Insight', stackId: 'stack' },
+                  ]}
+                  xAxisKey="year"
+                  height={400}
+                />
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Badge className="bg-blue-500">Shega</Badge>
+                    Yearly Stats
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {yearlyData.slice(-5).reverse().map((year) => (
+                      <div key={year.year} className="flex items-center justify-between border-b pb-2">
+                        <span className="font-medium">{year.year}</span>
+                        <div className="flex gap-4 text-sm">
+                          <span>{year.shega.articles} articles</span>
+                          {year.shega.yoy_growth_pct !== undefined && (
+                            <Badge 
+                              variant="outline"
+                              className={year.shega.yoy_growth_pct >= 0 ? 'text-green-600' : 'text-red-600'}
+                            >
+                              {year.shega.yoy_growth_pct >= 0 ? '+' : ''}{year.shega.yoy_growth_pct.toFixed(1)}%
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Badge className="bg-green-500">Addis Insight</Badge>
+                    Yearly Stats
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {yearlyData.slice(-5).reverse().map((year) => (
+                      <div key={year.year} className="flex items-center justify-between border-b pb-2">
+                        <span className="font-medium">{year.year}</span>
+                        <div className="flex gap-4 text-sm">
+                          <span>{year.addis_insight.articles} articles</span>
+                          {year.addis_insight.yoy_growth_pct !== undefined && (
+                            <Badge 
+                              variant="outline"
+                              className={year.addis_insight.yoy_growth_pct >= 0 ? 'text-green-600' : 'text-red-600'}
+                            >
+                              {year.addis_insight.yoy_growth_pct >= 0 ? '+' : ''}{year.addis_insight.yoy_growth_pct.toFixed(1)}%
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
+
+      {/* Site Comparison Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart2 className="h-5 w-5" />
+            Site Comparison (Last 12 Months)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Shega</span>
+                <span className="font-medium">{shegaTotal.toLocaleString()} articles</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div 
+                  className="h-full bg-blue-500" 
+                  style={{ width: `${totalArticles > 0 ? (shegaTotal / totalArticles * 100) : 0}%` }}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Addis Insight</span>
+                <span className="font-medium">{addisTotal.toLocaleString()} articles</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div 
+                  className="h-full bg-green-500" 
+                  style={{ width: `${totalArticles > 0 ? (addisTotal / totalArticles * 100) : 0}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -198,18 +336,18 @@ interface PublishingPageProps {
 
 export default async function PublishingPage({ searchParams }: PublishingPageProps) {
   const params = await searchParams;
-  const site = (params.site as SiteFilter) || 'shega';
-  
+  const site = (params.site as SiteFilter) || 'all';
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Publishing Analytics</h1>
           <p className="text-muted-foreground mt-1">
-            Analyze publishing patterns by weekday, month, and year
+            Analyze publishing patterns and frequency
           </p>
         </div>
-        <SiteSelector showBothOption={false} />
+        <SiteSelector />
       </div>
 
       <Suspense fallback={<PublishingSkeleton />}>
@@ -219,14 +357,12 @@ export default async function PublishingPage({ searchParams }: PublishingPagePro
   );
 }
 
-const SKELETON_CARD_IDS = ['skeleton-1', 'skeleton-2', 'skeleton-3', 'skeleton-4'] as const;
-
 function PublishingSkeleton() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-4">
-        {SKELETON_CARD_IDS.map((id) => (
-          <Card key={id}>
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i}>
             <CardHeader className="pb-2">
               <Skeleton className="h-4 w-24" />
             </CardHeader>
@@ -236,11 +372,10 @@ function PublishingSkeleton() {
           </Card>
         ))}
       </div>
-      <Skeleton className="h-10 w-full max-w-lg" />
+      <Skeleton className="h-10 w-96" />
       <Card>
         <CardHeader>
           <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-64" />
         </CardHeader>
         <CardContent>
           <Skeleton className="h-[400px] w-full" />

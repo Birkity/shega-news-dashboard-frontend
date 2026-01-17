@@ -1,4 +1,6 @@
 // Shega News Analytics Dashboard - API Service Layer
+// Based on API Documentation v2.0 (January 15, 2026)
+
 import config, { endpoints } from './config';
 import type * as API from '@/types/api';
 
@@ -48,326 +50,264 @@ export const healthAPI = {
     fetchAPI<{ status: string }>(endpoints.healthLive, {}, 0),
 };
 
-// ============= Dashboard API =============
-export const dashboardAPI = {
-  getOverview: () => 
-    fetchAPI<API.OverviewResponse>(endpoints.overview),
-
-  getDailyArticles: (days: number = 30, site?: API.Site) => 
-    fetchAPI<API.DailyArticle[]>(
-      `${endpoints.dailyArticles}${buildQuery({ days, site })}`,
-      {},
-      config.shortRevalidate
-    ),
-
-  getSummary: () => 
-    fetchAPI<API.DashboardSummary>(endpoints.dashboardSummary),
-};
-
-// ============= Articles API =============
-export const articlesAPI = {
-  getArticles: (params: {
-    page?: number;
-    per_page?: number;
-    site?: API.Site;
-    author?: string;
-    category?: string;
-    keyword?: string;
-    start_date?: string;
-    end_date?: string;
-    search?: string;
-  } = {}) => 
-    fetchAPI<API.ArticlesResponse>(
-      `${endpoints.articles}${buildQuery(params)}`,
-      {},
-      config.shortRevalidate
-    ),
-
-  getArticleById: (id: string) => 
-    fetchAPI<API.Article>(endpoints.articleById(id)),
-
-  getArticleBySlug: (site: string, slug: string) => 
-    fetchAPI<API.Article>(endpoints.articleBySlug(site, slug)),
-
-  getStats: () => 
-    fetchAPI<API.ArticleStatsSummary>(endpoints.articleStats),
-
-  getSamples: (params: {
-    limit?: number;
-    site?: API.Site;
-    sort_by?: 'recent' | 'positive' | 'negative' | 'long' | 'short';
-  } = {}) => 
-    fetchAPI<API.ArticleSample[]>(
-      `${endpoints.articleSamples}${buildQuery(params)}`,
-      {},
-      config.shortRevalidate
-    ),
-};
-
-// ============= Authors API =============
-export const authorsAPI = {
-  getTop: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.TopAuthor[]>(
-      `${endpoints.topAuthors}${buildQuery(params)}`
-    ),
-
-  getTopWithStats: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.AuthorWithStats[]>(
-      `${endpoints.topAuthorsWithStats}${buildQuery(params)}`
-    ),
-
-  getSentiment: (params: {
-    limit?: number;
-    site?: API.Site;
-    sort_by?: 'polarity' | 'subjectivity' | 'count';
-  } = {}) => 
-    fetchAPI<API.AuthorSentiment[]>(
-      `${endpoints.authorsSentiment}${buildQuery(params)}`
-    ),
-
-  getProductivity: (author: string, params: {
-    days?: number;
-    granularity?: 'day' | 'week' | 'month';
-  } = {}) => 
-    fetchAPI<API.AuthorProductivity>(
-      `${endpoints.authorProductivity(author)}${buildQuery(params)}`,
-      {},
-      config.shortRevalidate
-    ),
-
-  getKeywords: (author: string, params: {
-    limit?: number;
-    include_nlp?: boolean;
-  } = {}) => 
-    fetchAPI<API.AuthorKeywords>(
-      `${endpoints.authorKeywords(author)}${buildQuery(params)}`,
-      {},
-      config.shortRevalidate
-    ),
-};
-
-// ============= Categories API =============
-export const categoriesAPI = {
-  getDistribution: (site?: API.Site) => 
-    fetchAPI<API.CategoryDistribution[]>(
-      `${endpoints.categoriesDistribution}${buildQuery({ site })}`
-    ),
-
-  getTopTopics: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.CategoryTopTopic[]>(
-      `${endpoints.categoriesTopTopics}${buildQuery(params)}`
-    ),
-
-  getTopicComparison: (site?: API.Site) => 
-    fetchAPI<Record<string, unknown>>(
-      `${endpoints.categoriesTopicComparison}${buildQuery({ site })}`
-    ),
-};
-
-// ============= Keywords API =============
-export const keywordsAPI = {
-  getTop: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.TopKeyword[]>(
-      `${endpoints.topKeywords}${buildQuery(params)}`
-    ),
-
-  getExtracted: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.TopKeyword[]>(
-      `${endpoints.nlpExtractedKeywords}${buildQuery(params)}`
-    ),
-
-  getHeadline: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.HeadlineKeywordsResponse>(
-      `${endpoints.headlineKeywords}${buildQuery(params)}`
-    ),
-
-  getBody: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.BodyKeywordsResponse>(
-      `${endpoints.bodyKeywords}${buildQuery(params)}`
-    ),
-
-  getComprehensive: (params: { min_count?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.KeywordsComprehensive>(
-      `${endpoints.keywordsComprehensive}${buildQuery(params)}`
-    ),
-
-  getBySite: (limit?: number) => 
-    fetchAPI<API.KeywordsBySite>(
-      `${endpoints.keywordsBySite}${buildQuery({ limit })}`
-    ),
-
-  getTrending: (params: { weeks?: number; threshold?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.TrendingKeyword[]>(
-      `${endpoints.keywordsTrending}${buildQuery(params)}`,
-      {},
-      config.shortRevalidate
-    ),
-};
-
-// ============= Topics API =============
-export const topicsAPI = {
-  getEvolution: (params: { months?: number; site?: API.Site; limit?: number } = {}) => 
-    fetchAPI<API.TopicEvolution>(
-      `${endpoints.topicsEvolution}${buildQuery(params)}`
-    ),
-
-  getSpikes: (params: { weeks?: number; threshold?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.TopicSpike[]>(
-      `${endpoints.topicsSpikes}${buildQuery(params)}`,
-      {},
-      config.shortRevalidate
-    ),
-
-  getSentiment: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.TopicSentiment>(
-      `${endpoints.topicsSentiment}${buildQuery(params)}`
-    ),
-
-  getSentimentDistribution: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.TopicSentimentDistribution[]>(
-      `${endpoints.topicsSentimentDistribution}${buildQuery(params)}`
-    ),
-
-  getModeling: (params: { num_topics?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.TopicsModelingResponse>(
-      `${endpoints.topicsModeling}${buildQuery(params)}`
-    ),
-
-  getTreemap: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.TopicTreemapItem[]>(
-      `${endpoints.topicsTreemap}${buildQuery(params)}`
-    ),
-
-  getSpikeTimeline: (params: { weeks?: number; threshold?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.TopicSpikeTimelineResponse>(
-      `${endpoints.topicsSpikeTimeline}${buildQuery(params)}`,
-      {},
-      config.shortRevalidate
-    ),
-};
-
-// ============= Sentiment API =============
-export const sentimentAPI = {
-  getTimeline: (params: { months?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.SentimentTimelineItem[]>(
-      `${endpoints.sentimentTimeline}${buildQuery(params)}`
-    ),
-
-  getTopPositive: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.TopSentimentResponse>(
-      `${endpoints.topPositive}${buildQuery(params)}`
-    ),
-
-  getTopNegative: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.TopSentimentResponse>(
-      `${endpoints.topNegative}${buildQuery(params)}`
-    ),
-
-  getDistribution: (site?: API.Site) => 
-    fetchAPI<API.SentimentDistribution>(
-      `${endpoints.sentimentDistribution}${buildQuery({ site })}`
-    ),
-};
-
-// ============= NLP API =============
-export const nlpAPI = {
-  getSentimentSummary: (params: { site?: API.Site; author?: string } = {}) => 
-    fetchAPI<API.SentimentSummary>(
-      `${endpoints.nlpSentimentSummary}${buildQuery(params)}`
-    ),
-
-  getSentimentBySite: () => 
-    fetchAPI<API.SentimentBySite>(endpoints.nlpSentimentBySite),
-
-  getTopEntities: (params: {
-    entity_type?: API.EntityType;
-    limit?: number;
-    site?: API.Site;
-  } = {}) => 
-    fetchAPI<API.EntityItem[]>(
-      `${endpoints.nlpTopEntities}${buildQuery(params)}`
-    ),
-
-  getPeople: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.EntityItem[]>(
-      `${endpoints.nlpEntitiesPeople}${buildQuery(params)}`
-    ),
-
-  getOrganizations: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.EntityItem[]>(
-      `${endpoints.nlpEntitiesOrganizations}${buildQuery(params)}`
-    ),
-
-  getLocations: (params: { limit?: number; site?: API.Site } = {}) => 
-    fetchAPI<API.EntityItem[]>(
-      `${endpoints.nlpEntitiesLocations}${buildQuery(params)}`
-    ),
-
-  getReadabilitySummary: (site?: API.Site) => 
-    fetchAPI<API.ReadabilitySummary>(
-      `${endpoints.nlpReadabilitySummary}${buildQuery({ site })}`
-    ),
-
-  getReadabilityBySite: () => 
-    fetchAPI<API.ReadabilityBySite>(endpoints.nlpReadabilityBySite),
-
-  getEnrichmentStatus: () => 
-    fetchAPI<API.EnrichmentStatus>(endpoints.nlpEnrichmentStatus),
-};
-
-// ============= Publishing API =============
-export const publishingAPI = {
-  getTrends: (site?: API.Site) => 
-    fetchAPI<API.PublishingTrends>(
-      `${endpoints.publishingTrends}${buildQuery({ site })}`
-    ),
-
-  getYearly: (site?: API.Site) => 
-    fetchAPI<API.YearlyResponse>(
-      `${endpoints.publishingYearly}${buildQuery({ site })}`
-    ),
-};
-
-// ============= Comparison API =============
-export const comparisonAPI = {
-  getKeywords: (limit?: number) => 
-    fetchAPI<API.KeywordComparison>(
-      `${endpoints.compareKeywords}${buildQuery({ limit })}`
-    ),
-
-  getEntities: (params: { entity_type?: API.EntityType; limit?: number } = {}) => 
-    fetchAPI<API.EntityComparison>(
-      `${endpoints.compareEntities}${buildQuery(params)}`
-    ),
-
-  getContentLength: () => 
+// ============= Content Analytics API =============
+export const contentAnalyticsAPI = {
+  // Content Length endpoints
+  getLengthComparison: () => 
     fetchAPI<API.ContentLengthComparison>(endpoints.contentLengthComparison),
 
-  getContentLengthDistribution: (params: { bins?: number; site?: API.Site } = {}) => 
+  getLengthDistribution: (params: { site?: API.Site } = {}) => 
     fetchAPI<API.ContentLengthDistribution>(
       `${endpoints.contentLengthDistribution}${buildQuery(params)}`
     ),
 
-  getOverview: () => 
-    fetchAPI<API.CompareOverview>(endpoints.compareOverview),
-
-  getPublishingTrends: (months?: number) => 
-    fetchAPI<API.ComparePublishingTrends>(
-      `${endpoints.comparePublishingTrends}${buildQuery({ months })}`
+  // Content Format endpoints
+  getFormatInsights: (params: { site?: API.Site } = {}) => 
+    fetchAPI<API.ContentFormatInsights>(
+      `${endpoints.contentFormatInsights}${buildQuery(params)}`
     ),
 
-  getDuplication: (threshold?: number) => 
-    fetchAPI<API.CompareDuplication>(
-      `${endpoints.compareDuplication}${buildQuery({ threshold })}`
+  getFormatTrends: (params: { site?: API.Site; months?: number } = {}) => 
+    fetchAPI<API.ContentFormatTrends>(
+      `${endpoints.contentFormatTrends}${buildQuery(params)}`
     ),
 
-  getCoverageGaps: (limit?: number) => 
-    fetchAPI<API.CompareCoverageGaps>(
-      `${endpoints.compareCoverageGaps}${buildQuery({ limit })}`
+  // Content Elements endpoints
+  getImageCoverage: (params: { site?: API.Site } = {}) => 
+    fetchAPI<API.ImageCoverage>(
+      `${endpoints.contentElementsImages}${buildQuery(params)}`
+    ),
+};
+
+// ============= Keywords Analytics API =============
+export const keywordsAnalyticsAPI = {
+  getTop: (params: { limit?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.TopKeywordsResponse>(
+      `${endpoints.keywordsTop}${buildQuery(params)}`
     ),
 
-  getInsights: () => 
-    fetchAPI<API.CompareInsights>(endpoints.compareInsights),
+  getTrending: (params: { days?: number; months?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.TrendingKeywordsResponse>(
+      `${endpoints.keywordsTrending}${buildQuery(params)}`
+    ),
+
+  getBySite: (params: { limit?: number } = {}) => 
+    fetchAPI<API.KeywordsBySiteResponse>(
+      `${endpoints.keywordsBySite}${buildQuery(params)}`
+    ),
+};
+
+// ============= Topics Analytics API =============
+export const topicsAnalyticsAPI = {
+  getLabels: (params: { limit?: number; site?: API.Site } = {}) => 
+    fetchAPI<API.TopicLabelsResponse>(
+      `${endpoints.topicsLabels}${buildQuery(params)}`
+    ),
+
+  getLabelsBySite: (params: { limit?: number } = {}) => 
+    fetchAPI<API.TopicLabelsBySiteResponse>(
+      `${endpoints.topicsLabelsBySite}${buildQuery(params)}`
+    ),
+
+  getLabelsOverTime: (params: { site?: API.Site; months?: number; top_n?: number } = {}) => 
+    fetchAPI<API.TopicLabelsOverTimeResponse>(
+      `${endpoints.topicsLabelsOverTime}${buildQuery(params)}`
+    ),
+};
+
+// ============= Sentiment Analytics API =============
+export const sentimentAnalyticsAPI = {
+  getDistribution: (params: { site?: API.Site } = {}) => 
+    fetchAPI<API.SentimentDistributionResponse>(
+      `${endpoints.sentimentDistribution}${buildQuery(params)}`
+    ),
+
+  getTrends: (params: { site?: API.Site; months?: number } = {}) => 
+    fetchAPI<API.SentimentTrendsResponse>(
+      `${endpoints.sentimentTrends}${buildQuery(params)}`
+    ),
+};
+
+// ============= NLP & Entity Analytics API =============
+export const nlpAnalyticsAPI = {
+  getPeople: (params: { site?: API.Site; limit?: number } = {}) => 
+    fetchAPI<API.NLPPeopleResponse>(
+      `${endpoints.nlpEntitiesPeople}${buildQuery(params)}`
+    ),
+
+  getOrganizations: (params: { site?: API.Site; limit?: number } = {}) => 
+    fetchAPI<API.NLPOrganizationsResponse>(
+      `${endpoints.nlpEntitiesOrganizations}${buildQuery(params)}`
+    ),
+
+  getLocations: (params: { site?: API.Site; limit?: number } = {}) => 
+    fetchAPI<API.NLPLocationsResponse>(
+      `${endpoints.nlpEntitiesLocations}${buildQuery(params)}`
+    ),
+
+  getEnrichmentStatus: (params: { site?: API.Site } = {}) => 
+    fetchAPI<API.NLPEnrichmentStatusResponse>(
+      `${endpoints.nlpEnrichmentStatus}${buildQuery(params)}`
+    ),
+
+  getReadabilitySummary: () => 
+    fetchAPI<API.NLPReadabilitySummaryResponse>(
+      endpoints.nlpReadabilitySummary
+    ),
+
+  getReadabilityBySite: () => 
+    fetchAPI<API.NLPReadabilityBySiteResponse>(
+      endpoints.nlpReadabilityBySite
+    ),
+};
+
+// ============= Author Analytics API =============
+export const authorAnalyticsAPI = {
+  getOverviewCards: (params: { site?: API.Site } = {}) => 
+    fetchAPI<API.AuthorOverviewCardsResponse>(
+      `${endpoints.authorsOverviewCards}${buildQuery(params)}`
+    ),
+
+  getList: (params: { 
+    site?: API.Site; 
+    min_articles?: number; 
+    sort_by?: 'articles' | 'sentiment' | 'recent' 
+  } = {}) => 
+    fetchAPI<API.AuthorListResponse>(
+      `${endpoints.authorsList}${buildQuery(params)}`
+    ),
+
+  getSentiment: (params: { 
+    site?: API.Site; 
+    sort_by?: 'polarity' | 'subjectivity' | 'articles';
+    order?: 'asc' | 'desc';
+    limit?: number;
+  } = {}) => 
+    fetchAPI<API.AuthorSentimentResponse>(
+      `${endpoints.authorsSentiment}${buildQuery(params)}`
+    ),
+
+  getProductivity: (author: string, params: { 
+    site?: API.Site; 
+    granularity?: 'day' | 'week' | 'month';
+    days?: number;
+  } = {}) => 
+    fetchAPI<API.AuthorProductivity>(
+      `${endpoints.authorsProductivity(author)}${buildQuery(params)}`
+    ),
+
+  getKeywords: (author: string, params: { 
+    site?: API.Site; 
+    limit?: number;
+    include_nlp?: boolean;
+  } = {}) => 
+    fetchAPI<API.AuthorKeywords>(
+      `${endpoints.authorsKeywords(author)}${buildQuery(params)}`
+    ),
+
+  getSentimentDetail: (author: string, params: { site?: API.Site } = {}) => 
+    fetchAPI<API.AuthorSentimentDetailResponse>(
+      `${endpoints.authorsSentimentDetail(author)}${buildQuery(params)}`
+    ),
+};
+
+// ============= Publishing Analytics API =============
+export const publishingAnalyticsAPI = {
+  getCalendarHeatmap: (params: { 
+    site?: API.Site; 
+    year?: number; 
+    months?: number 
+  } = {}) => 
+    fetchAPI<API.PublishingCalendarHeatmapResponse>(
+      `${endpoints.publishingCalendarHeatmap}${buildQuery(params)}`,
+      {},
+      config.shortRevalidate
+    ),
+
+  getYearlyComparison: (params: { site?: API.Site } = {}) => 
+    fetchAPI<API.PublishingYearlyComparisonResponse>(
+      `${endpoints.publishingYearlyComparison}${buildQuery(params)}`
+    ),
+
+  getMonthlyCalendar: (params: { 
+    site?: API.Site; 
+    year: number; 
+    month: number 
+  }) => 
+    fetchAPI<API.PublishingMonthlyCalendarResponse>(
+      `${endpoints.publishingMonthlyCalendar}${buildQuery(params)}`
+    ),
+};
+
+// ============= Competitive Analysis API =============
+export const competitiveAnalysisAPI = {
+  getContentOverlap: () => 
+    fetchAPI<API.ContentOverlapResponse>(endpoints.compareContentOverlap),
+
+  getTopicOverlap: () => 
+    fetchAPI<API.TopicOverlapResponse>(endpoints.compareTopicOverlap),
+
+  getCompetitiveSummary: () => 
+    fetchAPI<API.CompetitiveSummaryResponse>(endpoints.compareCompetitiveSummary),
+};
+
+// ============= Article Drill-Down API =============
+export const articleDrillDownAPI = {
+  getList: (params: {
+    page?: number;
+    per_page?: number;
+    site?: API.Site;
+    author?: string;
+    keyword?: string;
+    topic_label?: string;
+    category?: string;
+    sentiment?: 'positive' | 'negative' | 'neutral';
+    content_length?: 'short' | 'medium' | 'long';
+    search?: string;
+    date_range?: string;
+    sort_by?: 'recent' | 'oldest' | 'positive' | 'negative' | 'long' | 'short';
+  } = {}) => 
+    fetchAPI<API.ArticleListResponse>(
+      `${endpoints.articlesList}${buildQuery(params)}`,
+      {},
+      config.shortRevalidate
+    ),
+
+  getByKeyword: (params: {
+    keyword: string;
+    site?: API.Site;
+    page?: number;
+    per_page?: number;
+  }) => 
+    fetchAPI<API.ArticleListResponse>(
+      `${endpoints.articlesByKeyword}${buildQuery(params)}`,
+      {},
+      config.shortRevalidate
+    ),
+
+  getByTopic: (params: {
+    topic_label: string;
+    site?: API.Site;
+    page?: number;
+    per_page?: number;
+  }) => 
+    fetchAPI<API.ArticleListResponse>(
+      `${endpoints.articlesByTopic}${buildQuery(params)}`,
+      {},
+      config.shortRevalidate
+    ),
+
+  getByAuthor: (params: {
+    author: string;
+    site?: API.Site;
+    page?: number;
+    per_page?: number;
+  }) => 
+    fetchAPI<API.ArticleListResponse>(
+      `${endpoints.articlesByAuthor}${buildQuery(params)}`,
+      {},
+      config.shortRevalidate
+    ),
 };
 
 // ============= Scraping API =============
@@ -391,12 +331,12 @@ export const scrapingAPI = {
     fetchAPI<API.ScrapeTaskStatus>(endpoints.scrapeStatus(taskId), {}, 0),
 
   getAllStatus: () => 
-    fetchAPI<{ tasks: Record<string, API.ScrapeTaskStatus>; running_count: number; completed_count: number; failed_count: number }>(
+    fetchAPI<API.ScrapeAllStatusResponse>(
       endpoints.scrapeAllStatus, {}, 0
     ),
 
   preview: (site: string, limit?: number) => 
-    fetchAPI<{ site: string; total_urls: number; preview_urls: string[] }>(
+    fetchAPI<API.ScrapePreviewResponse>(
       `${endpoints.scrapePreview(site)}${buildQuery({ limit })}`
     ),
 };
@@ -427,16 +367,15 @@ export const schedulerAPI = {
 // Export all APIs as a single object for convenience
 export const api = {
   health: healthAPI,
-  dashboard: dashboardAPI,
-  articles: articlesAPI,
-  authors: authorsAPI,
-  categories: categoriesAPI,
-  keywords: keywordsAPI,
-  topics: topicsAPI,
-  sentiment: sentimentAPI,
-  nlp: nlpAPI,
-  publishing: publishingAPI,
-  comparison: comparisonAPI,
+  contentAnalytics: contentAnalyticsAPI,
+  keywordsAnalytics: keywordsAnalyticsAPI,
+  topicsAnalytics: topicsAnalyticsAPI,
+  sentimentAnalytics: sentimentAnalyticsAPI,
+  nlpAnalytics: nlpAnalyticsAPI,
+  authorAnalytics: authorAnalyticsAPI,
+  publishingAnalytics: publishingAnalyticsAPI,
+  competitiveAnalysis: competitiveAnalysisAPI,
+  articleDrillDown: articleDrillDownAPI,
   scraping: scrapingAPI,
   scheduler: schedulerAPI,
 };

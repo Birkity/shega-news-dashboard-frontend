@@ -1,17 +1,24 @@
 import { Suspense } from 'react';
 import { ArticlesList } from '@/components/articles/articles-list';
-import { ArticlesFilters } from '@/components/articles/articles-filters';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
+import { GlobalFilters } from '@/components/filters/global-filters';
 
 export const dynamic = 'force-dynamic';
 
 interface ArticlesPageProps {
-  searchParams: Promise<{
+  readonly searchParams: Promise<{
     page?: string;
     site?: string;
     search?: string;
     category?: string;
+    author?: string;
+    keyword?: string;
+    topic_label?: string;
+    sentiment?: string;
+    content_length?: string;
+    date_range?: string;
+    sort_by?: string;
   }>;
 }
 
@@ -28,16 +35,30 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
         </p>
       </div>
 
-      {/* Filters */}
-      <ArticlesFilters />
+      {/* Enhanced Filters */}
+      <GlobalFilters 
+        showSearch={true}
+        showSite={true}
+        showDateRange={true}
+        showSentiment={true}
+        showContentLength={true}
+        showSort={true}
+      />
 
       {/* Articles List */}
       <Suspense fallback={<ArticlesListSkeleton />}>
         <ArticlesList
-          page={params.page ? parseInt(params.page) : 1}
+          page={params.page ? Number.parseInt(params.page, 10) : 1}
           site={params.site as 'shega' | 'addis_insight' | undefined}
           search={params.search}
           category={params.category}
+          author={params.author}
+          keyword={params.keyword}
+          topicLabel={params.topic_label}
+          sentiment={params.sentiment as 'positive' | 'negative' | 'neutral' | undefined}
+          contentLength={params.content_length as 'short' | 'medium' | 'long' | undefined}
+          dateRange={params.date_range}
+          sortBy={params.sort_by as 'recent' | 'oldest' | 'positive' | 'negative' | 'long' | 'short' | undefined}
         />
       </Suspense>
     </div>
@@ -48,7 +69,7 @@ function ArticlesListSkeleton() {
   return (
     <div className="space-y-4">
       {Array.from({ length: 5 }).map((_, i) => (
-        <Card key={i} className="p-4">
+        <Card key={`skeleton-${i}`} className="p-4">
           <div className="flex gap-4">
             <Skeleton className="h-24 w-24 rounded-lg shrink-0" />
             <div className="flex-1 space-y-2">

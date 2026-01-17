@@ -1,54 +1,52 @@
 import { Suspense } from 'react';
-import { categoriesAPI } from '@/lib/api';
+import { topicsAnalyticsAPI } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChartComponent } from '@/components/charts/bar-chart';
 import { DonutChart } from '@/components/charts/donut-chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FolderOpen, BarChart3, PieChart } from 'lucide-react';
+import { FolderOpen, BarChart3, PieChart, Tag } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 async function CategoriesContent() {
-  let categoryDistribution, shegaCategories, addisCategories;
+  let topicLabels, topicLabelsBySite;
   
   try {
-    [categoryDistribution, shegaCategories, addisCategories] = await Promise.all([
-      categoriesAPI.getDistribution(),
-      categoriesAPI.getDistribution('shega'),
-      categoriesAPI.getDistribution('addis_insight'),
+    [topicLabels, topicLabelsBySite] = await Promise.all([
+      topicsAnalyticsAPI.getLabels({ limit: 30 }),
+      topicsAnalyticsAPI.getLabelsBySite({ limit: 15 }),
     ]);
   } catch (error) {
     console.error('Error fetching categories data:', error);
     return (
       <div className="rounded-lg border border-dashed p-8 text-center">
-        <p className="text-muted-foreground">Unable to load categories data. Please check if the API is running.</p>
+        <p className="text-muted-foreground">Unable to load category data. Please check if the API is running.</p>
       </div>
     );
   }
 
-  const barData = categoryDistribution.slice(0, 15).map((cat) => ({
-    category: cat.category.length > 20 ? `${cat.category.slice(0, 20)}...` : cat.category,
-    count: cat.total,
+  // Transform topic labels for visualization
+  const barData = topicLabels.labels.slice(0, 15).map((label) => ({
+    category: label.topic_label.length > 20 ? `${label.topic_label.slice(0, 20)}...` : label.topic_label,
+    count: label.article_count,
   }));
 
-  const donutData = categoryDistribution.slice(0, 10).map((cat) => ({
-    name: cat.category,
-    value: cat.total,
+  const donutData = topicLabels.labels.slice(0, 10).map((label) => ({
+    name: label.topic_label,
+    value: label.article_count,
   }));
 
-  const shegaData = shegaCategories.slice(0, 10).map((cat) => ({
-    name: cat.category,
-    value: cat.shega_count,
-  }));
+  const shegaData = topicLabelsBySite.by_site?.shega?.labels?.slice(0, 10).map((label) => ({
+    name: label.topic_label,
+    value: label.count,
+  })) || [];
 
-  const addisData = addisCategories.slice(0, 10).map((cat) => ({
-    name: cat.category,
-    value: cat.addis_insight_count,
-  }));
-
-  const totalArticles = categoryDistribution.reduce((sum, cat) => sum + cat.total, 0);
+  const addisData = topicLabelsBySite.by_site?.addis_insight?.labels?.slice(0, 10).map((label) => ({
+    name: label.topic_label,
+    value: label.count,
+  })) || [];
 
   return (
     <div className="space-y-6">
@@ -60,8 +58,8 @@ async function CategoriesContent() {
             <FolderOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{categoryDistribution.length}</div>
-            <p className="text-xs text-muted-foreground">unique categories</p>
+            <div className="text-2xl font-bold">{topicLabels.labels.length}</div>
+            <p className="text-xs text-muted-foreground">unique topic labels</p>
           </CardContent>
         </Card>
         <Card>
@@ -70,128 +68,155 @@ async function CategoriesContent() {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold truncate">{categoryDistribution[0]?.category || 'N/A'}</div>
-            <p className="text-xs text-muted-foreground">{categoryDistribution[0]?.total || 0} articles</p>
+            <div className="text-2xl font-bold truncate">{topicLabels.labels[0]?.topic_label || 'N/A'}</div>
+            <p className="text-xs text-muted-foreground">{topicLabels.labels[0]?.article_count || 0} articles</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Articles</CardTitle>
+            <CardTitle className="text-sm font-medium">Labeled Articles</CardTitle>
             <PieChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalArticles.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">across all categories</p>
+            <div className="text-2xl font-bold">{topicLabels.total_with_labels.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">{topicLabels.coverage_percentage.toFixed(1)}% coverage</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Visualization */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Category Distribution</CardTitle>
-          <CardDescription>Number of articles per category</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <BarChartComponent
-            data={barData}
-            bars={[{ dataKey: 'count', color: '#2563eb', name: 'Articles' }]}
-            xAxisKey="category"
-            height={500}
-            layout="vertical"
-          />
-        </CardContent>
-      </Card>
-
-      {/* Site Comparison */}
-      <Tabs defaultValue="combined" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="combined">Combined View</TabsTrigger>
-          <TabsTrigger value="shega">Shega Media</TabsTrigger>
-          <TabsTrigger value="addis">Addis Insight</TabsTrigger>
+      <Tabs defaultValue="distribution" className="w-full">
+        <TabsList>
+          <TabsTrigger value="distribution">Distribution</TabsTrigger>
+          <TabsTrigger value="comparison">Site Comparison</TabsTrigger>
+          <TabsTrigger value="list">All Categories</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="combined">
-          <Card>
-            <CardHeader>
-              <CardTitle>Overall Category Split</CardTitle>
-              <CardDescription>Distribution across all sources</CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center">
-              <DonutChart
-                data={donutData}
-                colors={['#2563eb', '#8b5cf6', '#ec4899', '#f97316', '#22c55e', '#06b6d4', '#eab308', '#6366f1', '#14b8a6', '#f43f5e']}
-                innerRadius={60}
-                outerRadius={120}
-                centerLabel="Articles"
-                centerValue={totalArticles}
-              />
-            </CardContent>
-          </Card>
+        <TabsContent value="distribution" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Category Distribution</CardTitle>
+                <CardDescription>Articles per category (bar chart)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BarChartComponent
+                  data={barData}
+                  bars={[{ dataKey: 'count', color: '#2563eb', name: 'Articles' }]}
+                  xAxisKey="category"
+                  height={400}
+                  layout="vertical"
+                />
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Categories Share</CardTitle>
+                <CardDescription>Distribution of top 10 categories</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DonutChart data={donutData} height={400} />
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
-        <TabsContent value="shega">
-          <Card>
-            <CardHeader>
-              <CardTitle>Shega Categories</CardTitle>
-              <CardDescription>Category distribution for Shega News</CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center">
-              <DonutChart
-                data={shegaData}
-                colors={['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#1d4ed8', '#1e40af', '#1e3a8a', '#3730a3', '#4338ca']}
-                innerRadius={60}
-                outerRadius={120}
-                centerLabel="Articles"
-                centerValue={shegaCategories.reduce((s, c) => s + c.shega_count, 0)}
-              />
-            </CardContent>
-          </Card>
+        <TabsContent value="comparison" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Badge className="bg-blue-500">Shega</Badge>
+                  Top Categories
+                </CardTitle>
+                <CardDescription>
+                  {topicLabelsBySite.by_site?.shega?.total_labeled || 0} labeled articles
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {shegaData.length > 0 ? (
+                  <DonutChart data={shegaData} height={350} />
+                ) : (
+                  <div className="flex h-[350px] items-center justify-center text-muted-foreground">
+                    No data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Badge className="bg-green-500">Addis Insight</Badge>
+                  Top Categories
+                </CardTitle>
+                <CardDescription>
+                  {topicLabelsBySite.by_site?.addis_insight?.total_labeled || 0} labeled articles
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {addisData.length > 0 ? (
+                  <DonutChart data={addisData} height={350} />
+                ) : (
+                  <div className="flex h-[350px] items-center justify-center text-muted-foreground">
+                    No data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Shared Topics */}
+          {topicLabelsBySite.shared_labels && topicLabelsBySite.shared_labels.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Shared Categories</CardTitle>
+                <CardDescription>Categories covered by both sites</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {topicLabelsBySite.shared_labels.map((shared) => (
+                    <div key={shared.topic_label} className="flex items-center justify-between border-b pb-2">
+                      <span className="font-medium">{shared.topic_label}</span>
+                      <div className="flex gap-4 text-sm">
+                        <span className="text-blue-600">Shega: {shared.shega}</span>
+                        <span className="text-green-600">Addis: {shared.addis_insight}</span>
+                        <Badge variant="outline">{shared.total} total</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
-        <TabsContent value="addis">
+        <TabsContent value="list">
           <Card>
             <CardHeader>
-              <CardTitle>Addis Insight Categories</CardTitle>
-              <CardDescription>Category distribution for Addis Insight</CardDescription>
+              <CardTitle>All Categories</CardTitle>
+              <CardDescription>Complete list of categories with article counts</CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-center">
-              <DonutChart
-                data={addisData}
-                colors={['#dc2626', '#ef4444', '#f87171', '#fca5a5', '#fecaca', '#b91c1c', '#991b1b', '#7f1d1d', '#f97316', '#fb923c']}
-                innerRadius={60}
-                outerRadius={120}
-                centerLabel="Articles"
-                centerValue={addisCategories.reduce((s, c) => s + c.addis_insight_count, 0)}
-              />
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {topicLabels.labels.map((label, i) => {
+                  const colors = ['#2563eb', '#8b5cf6', '#ec4899', '#f97316', '#22c55e', '#06b6d4', '#eab308', '#f43f5e', '#14b8a6', '#a855f7'];
+                  return (
+                    <Badge
+                      key={label.topic_label}
+                      style={{ backgroundColor: colors[i % colors.length] }}
+                      className="text-white text-sm py-1.5 px-3"
+                    >
+                      <Tag className="h-3 w-3 mr-1" />
+                      {label.topic_label} ({label.article_count})
+                    </Badge>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* All Categories List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Categories</CardTitle>
-          <CardDescription>Complete list of categories with article counts</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {categoryDistribution.map((cat) => (
-              <Badge
-                key={cat.category}
-                variant="outline"
-                className="text-sm py-1.5 px-3"
-              >
-                {cat.category}
-                <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold">
-                  {cat.total}
-                </span>
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
@@ -200,9 +225,9 @@ export default function CategoriesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Categories Analytics</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
         <p className="text-muted-foreground mt-1">
-          Analysis of article categories and content distribution
+          Explore article categories based on topic labels
         </p>
       </div>
 
@@ -228,15 +253,25 @@ function CategoriesSkeleton() {
           </Card>
         ))}
       </div>
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-64" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-[500px] w-full" />
-        </CardContent>
-      </Card>
+      <Skeleton className="h-10 w-96" />
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[400px] w-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[400px] w-full" />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
