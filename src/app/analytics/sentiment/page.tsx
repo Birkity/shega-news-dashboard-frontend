@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChartComponent } from '@/components/charts/bar-chart';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AreaLineChart } from '@/components/charts/line-chart';
 import { Smile, Frown, Meh, TrendingUp } from 'lucide-react';
 import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
+import { ExpandableArticleCard } from '@/components/sentiment/expandable-article-card';
 import type { Site } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
@@ -18,12 +19,14 @@ interface SearchParams {
 async function SentimentContent({ site }: { readonly site: SiteFilter }) {
   const siteParam: Site | undefined = site === 'all' ? undefined : site;
   
-  let sentimentDistribution, sentimentTrends;
+  let sentimentTimeline, sentimentDistribution, topPositive, topNegative;
   
   try {
-    [sentimentDistribution, sentimentTrends] = await Promise.all([
+    [sentimentTimeline, sentimentDistribution, topPositive, topNegative] = await Promise.all([
+      sentimentAnalyticsAPI.getTimeline({ site: siteParam, months: 12 }),
       sentimentAnalyticsAPI.getDistribution({ site: siteParam }),
-      sentimentAnalyticsAPI.getTrends({ site: siteParam, months: 12 }),
+      sentimentAnalyticsAPI.getTopPositive({ site: siteParam, limit: 10 }),
+      sentimentAnalyticsAPI.getTopNegative({ site: siteParam, limit: 10 }),
     ]);
   } catch (error) {
     console.error('Error fetching sentiment data:', error);
@@ -34,282 +37,204 @@ async function SentimentContent({ site }: { readonly site: SiteFilter }) {
     );
   }
 
-  // Get the right distribution based on site selection
-  const getDistribution = () => {
-    if (site === 'all') return sentimentDistribution.distribution.all;
-    if (site === 'shega') return sentimentDistribution.distribution.shega;
-    return sentimentDistribution.distribution.addis_insight;
+  // Transform timeline data for line chart
+  const siteKey = site === 'shega' ? 'shega' : 'addis_insight';
+  const timelineData = Array.isArray(sentimentTimeline) 
+    ? sentimentTimeline
+        .filter((item: any) => item[siteKey] !== null)
+        .map((item: any) => {
+          const siteData = item[siteKey];
+          const count = siteData?.count || 0;
+          const positivePct = siteData?.positive_pct || 0;
+          const negativePct = siteData?.negative_pct || 0;
+          const neutralPct = 100 - positivePct - negativePct;
+          
+          return {
+            month: item.month,
+            positive: Math.round((count * positivePct) / 100),
+            neutral: Math.round((count * neutralPct) / 100),
+            negative: Math.round((count * negativePct) / 100),
+          };
+        })
+    : [];
+
+  // Get sentiment breakdown for the selected site
+  const siteBreakdown = sentimentDistribution?.distribution?.[siteKey] || {
+    positive: 0,
+    neutral: 0,
+    negative: 0,
+    positive_pct: 0,
+    neutral_pct: 0,
+    negative_pct: 0,
   };
 
-  const distribution = getDistribution();
-
-  // Transform data for comparison chart
-  const comparisonData = [
-    {
-      site: 'Shega',
-      positive: sentimentDistribution.distribution.shega?.positive || 0,
-      neutral: sentimentDistribution.distribution.shega?.neutral || 0,
-      negative: sentimentDistribution.distribution.shega?.negative || 0,
-    },
-    {
-      site: 'Addis Insight',
-      positive: sentimentDistribution.distribution.addis_insight?.positive || 0,
-      neutral: sentimentDistribution.distribution.addis_insight?.neutral || 0,
-      negative: sentimentDistribution.distribution.addis_insight?.negative || 0,
-    },
+  // Transform breakdown data for bar chart
+  const breakdownData = [
+    { category: 'Positive', count: siteBreakdown.positive, percentage: siteBreakdown.positive_pct || 0 },
+    { category: 'Neutral', count: siteBreakdown.neutral, percentage: siteBreakdown.neutral_pct || 0 },
+    { category: 'Negative', count: siteBreakdown.negative, percentage: siteBreakdown.negative_pct || 0 },
   ];
-
-  // Transform trends data for chart
-  const trendsData = sentimentTrends?.timeline?.map((item: {
-    month: string;
-    avg_polarity: number;
-    avg_subjectivity: number;
-    positive_count: number;
-    negative_count: number;
-    neutral_count: number;
-    total_articles: number;
-  }) => ({
-    month: item.month,
-    polarity: Math.round(item.avg_polarity * 100) / 100,
-    subjectivity: Math.round(item.avg_subjectivity * 100) / 100,
-    positive: item.positive_count,
-    negative: item.negative_count,
-    neutral: item.neutral_count,
-    total: item.total_articles,
-  })) || [];
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Sentiment Trend Over Time */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Sentiment Trend Over Time
+          </CardTitle>
+          <CardDescription>Monthly sentiment distribution for the last 12 months</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {timelineData.length > 0 ? (
+            <AreaLineChart
+              data={timelineData}
+              lines={[
+                { dataKey: 'positive', color: '#10B981', name: 'Positive' },
+                { dataKey: 'neutral', color: '#6B7280', name: 'Neutral' },
+                { dataKey: 'negative', color: '#EF4444', name: 'Negative' },
+              ]}
+              xAxisKey="month"
+              height={350}
+            />
+          ) : (
+            <div className="text-center text-muted-foreground py-8">
+              No timeline data available
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Sentiment Breakdown for Selected Site */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Sentiment Breakdown</CardTitle>
+          <CardDescription>Distribution of sentiment categories for {site === 'shega' ? 'Shega Media' : 'Addis Insight'}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Bar Chart Visualization */}
+            <div>
+              <BarChartComponent
+                data={breakdownData}
+                bars={[
+                  { dataKey: 'count', color: '#3B82F6', name: 'Article Count' },
+                ]}
+                xAxisKey="category"
+                height={300}
+              />
+            </div>
+
+            {/* Numerical Breakdown */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Smile className="h-6 w-6 text-green-500" />
+                  <div>
+                    <p className="font-medium">Positive</p>
+                    <p className="text-sm text-muted-foreground">{siteBreakdown.positive} articles</p>
+                  </div>
+                </div>
+                <Badge className="bg-green-500 text-lg px-3 py-1">
+                  {siteBreakdown.positive_pct?.toFixed(1) || 0}%
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Meh className="h-6 w-6 text-gray-500" />
+                  <div>
+                    <p className="font-medium">Neutral</p>
+                    <p className="text-sm text-muted-foreground">{siteBreakdown.neutral} articles</p>
+                  </div>
+                </div>
+                <Badge className="bg-gray-500 text-lg px-3 py-1">
+                  {siteBreakdown.neutral_pct?.toFixed(1) || 0}%
+                </Badge>
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Frown className="h-6 w-6 text-red-500" />
+                  <div>
+                    <p className="font-medium">Negative</p>
+                    <p className="text-sm text-muted-foreground">{siteBreakdown.negative} articles</p>
+                  </div>
+                </div>
+                <Badge className="bg-red-500 text-lg px-3 py-1">
+                  {siteBreakdown.negative_pct?.toFixed(1) || 0}%
+                </Badge>
+              </div>
+
+              <div className="pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Total Articles: <span className="font-medium">{siteBreakdown.positive + siteBreakdown.neutral + siteBreakdown.negative}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Top Positive and Negative Articles */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Top Positive Articles */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Positive Articles</CardTitle>
-            <Smile className="h-4 w-4 text-green-500" />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Smile className="h-5 w-5 text-green-500" />
+              Top Positive Articles
+            </CardTitle>
+            <CardDescription>Articles with the highest positive sentiment scores</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {distribution?.positive?.toLocaleString() || 0}
+            <div className="space-y-4 max-h-[600px] overflow-y-auto">
+              {topPositive?.[siteKey]?.map((article: any) => (
+                <ExpandableArticleCard
+                  key={article.url || article.title}
+                  article={article}
+                  siteName={site === 'shega' ? 'Shega Media' : 'Addis Insight'}
+                  badgeColor="green"
+                />
+              ))}
+              {(!topPositive?.[siteKey] || topPositive[siteKey].length === 0) && (
+                <div className="text-center text-muted-foreground py-8">
+                  No positive articles found
+                </div>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {distribution?.positive_pct?.toFixed(1) || 0}% of total
-            </p>
           </CardContent>
         </Card>
 
+        {/* Top Negative Articles */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Neutral Articles</CardTitle>
-            <Meh className="h-4 w-4 text-gray-500" />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Frown className="h-5 w-5 text-red-500" />
+              Top Negative Articles
+            </CardTitle>
+            <CardDescription>Articles with the highest negative sentiment scores</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-600">
-              {distribution?.neutral?.toLocaleString() || 0}
+            <div className="space-y-4 max-h-[600px] overflow-y-auto">
+              {topNegative?.[siteKey]?.map((article: any) => (
+                <ExpandableArticleCard
+                  key={article.url || article.title}
+                  article={article}
+                  siteName={site === 'shega' ? 'Shega Media' : 'Addis Insight'}
+                  badgeColor="red"
+                />
+              ))}
+              {(!topNegative?.[siteKey] || topNegative[siteKey].length === 0) && (
+                <div className="text-center text-muted-foreground py-8">
+                  No negative articles found
+                </div>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {distribution?.neutral_pct?.toFixed(1) || 0}% of total
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Negative Articles</CardTitle>
-            <Frown className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {distribution?.negative?.toLocaleString() || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {distribution?.negative_pct?.toFixed(1) || 0}% of total
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Analyzed</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {distribution?.total?.toLocaleString() || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              articles with sentiment
-            </p>
           </CardContent>
         </Card>
       </div>
-
-      <Tabs defaultValue="comparison" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="comparison">Site Comparison</TabsTrigger>
-          <TabsTrigger value="trends">Trends Over Time</TabsTrigger>
-          <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="comparison">
-          <Card>
-            <CardHeader>
-              <CardTitle>Sentiment Comparison by Site</CardTitle>
-              <CardDescription>Compare sentiment distribution between Shega and Addis Insight</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <BarChartComponent
-                data={comparisonData}
-                bars={[
-                  { dataKey: 'positive', color: '#10B981', name: 'Positive', stackId: 'stack' },
-                  { dataKey: 'neutral', color: '#6B7280', name: 'Neutral', stackId: 'stack' },
-                  { dataKey: 'negative', color: '#EF4444', name: 'Negative', stackId: 'stack' },
-                ]}
-                xAxisKey="site"
-                height={400}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="trends">
-          <Card>
-            <CardHeader>
-              <CardTitle>Sentiment Trends Over Time</CardTitle>
-              <CardDescription>Monthly article counts by sentiment category</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {trendsData.length > 0 ? (
-                <BarChartComponent
-                  data={trendsData}
-                  bars={[
-                    { dataKey: 'positive', color: '#10B981', name: 'Positive', stackId: 'stack' },
-                    { dataKey: 'neutral', color: '#6B7280', name: 'Neutral', stackId: 'stack' },
-                    { dataKey: 'negative', color: '#EF4444', name: 'Negative', stackId: 'stack' },
-                  ]}
-                  xAxisKey="month"
-                  height={400}
-                />
-              ) : (
-                <div className="flex h-[400px] items-center justify-center text-muted-foreground">
-                  No trend data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="breakdown">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Badge className="bg-blue-500">Shega</Badge>
-                  Sentiment Breakdown
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Smile className="h-5 w-5 text-green-500" />
-                      <span>Positive</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">{sentimentDistribution.distribution.shega?.positive || 0}</span>
-                      <Badge variant="outline" className="text-green-600">
-                        {sentimentDistribution.distribution.shega?.positive_pct?.toFixed(1) || 0}%
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Meh className="h-5 w-5 text-gray-500" />
-                      <span>Neutral</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">{sentimentDistribution.distribution.shega?.neutral || 0}</span>
-                      <Badge variant="outline" className="text-gray-600">
-                        {sentimentDistribution.distribution.shega?.neutral_pct?.toFixed(1) || 0}%
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Frown className="h-5 w-5 text-red-500" />
-                      <span>Negative</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">{sentimentDistribution.distribution.shega?.negative || 0}</span>
-                      <Badge variant="outline" className="text-red-600">
-                        {sentimentDistribution.distribution.shega?.negative_pct?.toFixed(1) || 0}%
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="pt-2 border-t">
-                    <p className="text-sm text-muted-foreground">
-                      Avg Positive Polarity: {sentimentDistribution.avg_polarity_by_label?.shega?.positive?.toFixed(3) || 'N/A'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Badge className="bg-green-500">Addis Insight</Badge>
-                  Sentiment Breakdown
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Smile className="h-5 w-5 text-green-500" />
-                      <span>Positive</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">{sentimentDistribution.distribution.addis_insight?.positive || 0}</span>
-                      <Badge variant="outline" className="text-green-600">
-                        {sentimentDistribution.distribution.addis_insight?.positive_pct?.toFixed(1) || 0}%
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Meh className="h-5 w-5 text-gray-500" />
-                      <span>Neutral</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">{sentimentDistribution.distribution.addis_insight?.neutral || 0}</span>
-                      <Badge variant="outline" className="text-gray-600">
-                        {sentimentDistribution.distribution.addis_insight?.neutral_pct?.toFixed(1) || 0}%
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Frown className="h-5 w-5 text-red-500" />
-                      <span>Negative</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">{sentimentDistribution.distribution.addis_insight?.negative || 0}</span>
-                      <Badge variant="outline" className="text-red-600">
-                        {sentimentDistribution.distribution.addis_insight?.negative_pct?.toFixed(1) || 0}%
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="pt-2 border-t">
-                    <p className="text-sm text-muted-foreground">
-                      Avg Positive Polarity: {sentimentDistribution.avg_polarity_by_label?.addis_insight?.positive?.toFixed(3) || 'N/A'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }
@@ -320,7 +245,7 @@ interface SentimentPageProps {
 
 export default async function SentimentPage({ searchParams }: SentimentPageProps) {
   const params = await searchParams;
-  const site = (params.site as SiteFilter) || 'all';
+  const site = (params.site as SiteFilter) || 'shega';
 
   return (
     <div className="space-y-6">
@@ -331,7 +256,7 @@ export default async function SentimentPage({ searchParams }: SentimentPageProps
             Analyze sentiment distribution and trends across articles
           </p>
         </div>
-        <SiteSelector />
+        <SiteSelector showBothOption={false} />
       </div>
 
       <Suspense fallback={<SentimentSkeleton />}>
@@ -344,28 +269,64 @@ export default async function SentimentPage({ searchParams }: SentimentPageProps
 function SentimentSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <Card key={i}>
-            <CardHeader className="pb-2">
-              <Skeleton className="h-4 w-24" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-16" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      <Skeleton className="h-10 w-96" />
+      {/* Timeline Skeleton */}
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-64" />
+          <Skeleton className="h-4 w-96" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[350px] w-full" />
+        </CardContent>
+      </Card>
+
+      {/* Breakdown Skeleton */}
       <Card>
         <CardHeader>
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-4 w-64" />
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[400px] w-full" />
+          <div className="grid gap-6 md:grid-cols-2">
+            <Skeleton className="h-[300px] w-full" />
+            <div className="space-y-4">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Articles Skeleton */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

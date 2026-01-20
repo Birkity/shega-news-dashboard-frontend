@@ -6,9 +6,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BarChartComponent } from '@/components/charts/bar-chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, Building2, MapPin, Users, Landmark, Globe } from 'lucide-react';
-import type { NLPPersonEntity, NLPOrganizationEntity, NLPLocationEntity } from '@/types/api';
+import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
+import type { Site, NLPPersonEntity, NLPOrganizationEntity, NLPLocationEntity } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
+
+interface SearchParams {
+  site?: string;
+}
 
 // Entity stats card component
 interface EntityStatsProps {
@@ -156,14 +161,16 @@ function LocationsList({ entities }: { readonly entities: NLPLocationEntity[] })
   );
 }
 
-async function EntitiesContent() {
+async function EntitiesContent({ site }: { readonly site: SiteFilter }) {
+  const siteParam: Site | undefined = site === 'all' ? undefined : site;
+  
   let people, organizations, locations, enrichmentStatus;
   
   try {
     [people, organizations, locations, enrichmentStatus] = await Promise.all([
-      nlpAnalyticsAPI.getPeople({ limit: 20 }),
-      nlpAnalyticsAPI.getOrganizations({ limit: 20 }),
-      nlpAnalyticsAPI.getLocations({ limit: 20 }),
+      nlpAnalyticsAPI.getPeople({ site: siteParam, limit: 20 }),
+      nlpAnalyticsAPI.getOrganizations({ site: siteParam, limit: 20 }),
+      nlpAnalyticsAPI.getLocations({ site: siteParam, limit: 20 }),
       nlpAnalyticsAPI.getEnrichmentStatus(),
     ]);
   } catch (error) {
@@ -375,18 +382,28 @@ async function EntitiesContent() {
   );
 }
 
-export default function EntitiesPage() {
+interface EntitiesPageProps {
+  readonly searchParams: Promise<SearchParams>;
+}
+
+export default async function EntitiesPage({ searchParams }: EntitiesPageProps) {
+  const params = await searchParams;
+  const site = (params.site as SiteFilter) || 'shega';
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Entity Analytics</h1>
-        <p className="text-muted-foreground mt-1">
-          Named entity recognition: people, organizations, and locations mentioned in articles
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Entity Analytics</h1>
+          <p className="text-muted-foreground mt-1">
+            Named entity recognition: people, organizations, and locations mentioned in articles
+          </p>
+        </div>
+        <SiteSelector showBothOption={false} />
       </div>
 
       <Suspense fallback={<EntitiesSkeleton />}>
-        <EntitiesContent />
+        <EntitiesContent site={site} />
       </Suspense>
     </div>
   );

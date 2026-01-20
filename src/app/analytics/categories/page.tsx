@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BarChartComponent } from '@/components/charts/bar-chart';
 import { DonutChart } from '@/components/charts/donut-chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FolderOpen, BarChart3, PieChart, Tag } from 'lucide-react';
+import { FolderOpen, BarChart3 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,16 +27,16 @@ async function CategoriesContent() {
     );
   }
 
-  // Transform topic labels for visualization
-  const barData = topicLabels.labels.slice(0, 15).map((label) => ({
+  // Transform topic labels for visualization - separate by site
+  const shegaBarData = topicLabelsBySite.by_site?.shega?.labels?.slice(0, 15).map((label) => ({
     category: label.topic_label.length > 20 ? `${label.topic_label.slice(0, 20)}...` : label.topic_label,
-    count: label.article_count,
-  }));
+    count: label.count,
+  })) || [];
 
-  const donutData = topicLabels.labels.slice(0, 10).map((label) => ({
-    name: label.topic_label,
-    value: label.article_count,
-  }));
+  const addisBarData = topicLabelsBySite.by_site?.addis_insight?.labels?.slice(0, 15).map((label) => ({
+    category: label.topic_label.length > 20 ? `${label.topic_label.slice(0, 20)}...` : label.topic_label,
+    count: label.count,
+  })) || [];
 
   const shegaData = topicLabelsBySite.by_site?.shega?.labels?.slice(0, 10).map((label) => ({
     name: label.topic_label,
@@ -51,7 +51,7 @@ async function CategoriesContent() {
   return (
     <div className="space-y-6">
       {/* Summary Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Categories</CardTitle>
@@ -72,35 +72,27 @@ async function CategoriesContent() {
             <p className="text-xs text-muted-foreground">{topicLabels.labels[0]?.article_count || 0} articles</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Labeled Articles</CardTitle>
-            <PieChart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{topicLabels.total_with_labels.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">{topicLabels.coverage_percentage.toFixed(1)}% coverage</p>
-          </CardContent>
-        </Card>
       </div>
 
       <Tabs defaultValue="distribution" className="w-full">
         <TabsList>
           <TabsTrigger value="distribution">Distribution</TabsTrigger>
           <TabsTrigger value="comparison">Site Comparison</TabsTrigger>
-          <TabsTrigger value="list">All Categories</TabsTrigger>
         </TabsList>
 
         <TabsContent value="distribution" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Category Distribution</CardTitle>
-                <CardDescription>Articles per category (bar chart)</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Badge className="bg-blue-500">Shega</Badge>
+                  Category Distribution
+                </CardTitle>
+                <CardDescription>Articles per category - Shega Media</CardDescription>
               </CardHeader>
               <CardContent>
                 <BarChartComponent
-                  data={barData}
+                  data={shegaBarData}
                   bars={[{ dataKey: 'count', color: '#2563eb', name: 'Articles' }]}
                   xAxisKey="category"
                   height={400}
@@ -111,11 +103,20 @@ async function CategoriesContent() {
             
             <Card>
               <CardHeader>
-                <CardTitle>Top Categories Share</CardTitle>
-                <CardDescription>Distribution of top 10 categories</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Badge className="bg-green-500">Addis Insight</Badge>
+                  Category Distribution
+                </CardTitle>
+                <CardDescription>Articles per category - Addis Insight</CardDescription>
               </CardHeader>
               <CardContent>
-                <DonutChart data={donutData} height={400} />
+                <BarChartComponent
+                  data={addisBarData}
+                  bars={[{ dataKey: 'count', color: '#22c55e', name: 'Articles' }]}
+                  xAxisKey="category"
+                  height={400}
+                  layout="vertical"
+                />
               </CardContent>
             </Card>
           </div>
@@ -189,32 +190,6 @@ async function CategoriesContent() {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-
-        <TabsContent value="list">
-          <Card>
-            <CardHeader>
-              <CardTitle>All Categories</CardTitle>
-              <CardDescription>Complete list of categories with article counts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {topicLabels.labels.map((label, i) => {
-                  const colors = ['#2563eb', '#8b5cf6', '#ec4899', '#f97316', '#22c55e', '#06b6d4', '#eab308', '#f43f5e', '#14b8a6', '#a855f7'];
-                  return (
-                    <Badge
-                      key={label.topic_label}
-                      style={{ backgroundColor: colors[i % colors.length] }}
-                      className="text-white text-sm py-1.5 px-3"
-                    >
-                      <Tag className="h-3 w-3 mr-1" />
-                      {label.topic_label} ({label.article_count})
-                    </Badge>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

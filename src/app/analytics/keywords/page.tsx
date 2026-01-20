@@ -3,12 +3,10 @@ import Link from 'next/link';
 import { keywordsAnalyticsAPI } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { InteractiveWordCloud } from '@/components/interactive/clickable-elements';
 import { 
-  Heading1, FileText, TrendingUp, Scale, 
-  Clock, Sparkles, ExternalLink
+  Heading1, FileText, ExternalLink
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -78,14 +76,10 @@ function KeywordList({
 }
 
 async function KeywordsContent() {
-  let topKeywords, trendingKeywords, keywordsBySite;
+  let keywordsBySite;
   
   try {
-    [topKeywords, trendingKeywords, keywordsBySite] = await Promise.all([
-      keywordsAnalyticsAPI.getTop({ limit: 40 }),
-      keywordsAnalyticsAPI.getTrending({ months: 3 }),
-      keywordsAnalyticsAPI.getBySite({ limit: 30 }),
-    ]);
+    keywordsBySite = await keywordsAnalyticsAPI.getBySite({ limit: 30 });
   } catch (error) {
     console.error('Error fetching keywords data:', error);
     return (
@@ -96,9 +90,6 @@ async function KeywordsContent() {
   }
 
   // Extract data
-  const allTopKeywords = topKeywords?.value || [];
-  const trendingHeadline = trendingKeywords?.trending_headline_keywords || [];
-  const trendingBody = trendingKeywords?.trending_body_keywords || [];
   const shegaKeywords = keywordsBySite?.shega;
   const addisKeywords = keywordsBySite?.addis_insight;
   const comparison = keywordsBySite?.comparison;
@@ -108,237 +99,103 @@ async function KeywordsContent() {
   const bodyOverlap = comparison?.body_keywords?.pairwise_overlap?.shega_vs_addis_insight;
 
   return (
-    <Tabs defaultValue="overview" className="w-full space-y-6">
-      <TabsList className="mb-4">
-        <TabsTrigger value="overview" className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4" />
-          <span>Top Keywords</span>
-        </TabsTrigger>
-        <TabsTrigger value="trending" className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4" />
-          <span>Trending</span>
-        </TabsTrigger>
-        <TabsTrigger value="bysite" className="flex items-center gap-2">
-          <Scale className="h-4 w-4" />
-          <span>By Site</span>
-        </TabsTrigger>
-      </TabsList>
-
-      {/* TOP KEYWORDS TAB */}
-      <TabsContent value="overview" className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Keywords</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{topKeywords?.Count || 0}</p>
-              <p className="text-xs text-muted-foreground">Across all articles</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Top Keyword</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold capitalize">{allTopKeywords[0]?.keyword || '-'}</p>
-              <p className="text-xs text-muted-foreground">
-                {allTopKeywords[0]?.count?.toLocaleString() || 0} occurrences
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Headline Overlap</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{headlineOverlap?.overlap_percentage?.toFixed(1) || 0}%</p>
-              <p className="text-xs text-muted-foreground">{headlineOverlap?.shared_count || 0} shared keywords</p>
-            </CardContent>
-          </Card>
-        </div>
-
+    <div className="space-y-6">
+      {/* Overlap Stats */}
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              Top Keywords Across All Articles
-            </CardTitle>
-            <CardDescription>
-              Most frequently occurring keywords in the entire corpus
-            </CardDescription>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Headline Keyword Overlap</CardTitle>
           </CardHeader>
           <CardContent>
-            <InteractiveWordCloud words={allTopKeywords} palette="headline" />
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      {/* TRENDING TAB */}
-      <TabsContent value="trending" className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Analysis Period
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-lg font-semibold">{trendingKeywords?.period?.days || 30} days</p>
-              <p className="text-xs text-muted-foreground">
-                {new Date(trendingKeywords?.period?.start_date || '').toLocaleDateString()} - {' '}
-                {new Date(trendingKeywords?.period?.end_date || '').toLocaleDateString()}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Trending Count</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between">
-                <div>
-                  <p className="text-lg font-semibold">{trendingHeadline.length}</p>
-                  <p className="text-xs text-muted-foreground">Headline</p>
-                </div>
-                <div>
-                  <p className="text-lg font-semibold">{trendingBody.length}</p>
-                  <p className="text-xs text-muted-foreground">Body</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Heading1 className="h-5 w-5" />
-                Trending in Headlines
-              </CardTitle>
-              <CardDescription>Recently popular headline keywords</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <InteractiveWordCloud words={trendingHeadline} palette="trending" />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Trending in Body Content
-              </CardTitle>
-              <CardDescription>Recently popular body keywords</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <InteractiveWordCloud words={trendingBody} palette="body" />
-            </CardContent>
-          </Card>
-        </div>
-      </TabsContent>
-
-      {/* BY SITE TAB */}
-      <TabsContent value="bysite" className="space-y-6">
-        {/* Overlap Stats */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Headline Keyword Overlap</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold">{headlineOverlap?.overlap_percentage?.toFixed(1) || 0}%</p>
-                  <p className="text-xs text-muted-foreground">{headlineOverlap?.shared_count || 0} shared keywords</p>
-                </div>
-                <div className="text-right text-sm text-muted-foreground">
-                  <p>{comparison?.headline_keywords?.unique_per_site?.shega?.length || 0} unique to Shega</p>
-                  <p>{comparison?.headline_keywords?.unique_per_site?.addis_insight?.length || 0} unique to Addis</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Body Keyword Overlap</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold">{bodyOverlap?.overlap_percentage?.toFixed(1) || 0}%</p>
-                  <p className="text-xs text-muted-foreground">{bodyOverlap?.shared_count || 0} shared keywords</p>
-                </div>
-                <div className="text-right text-sm text-muted-foreground">
-                  <p>{comparison?.body_keywords?.unique_per_site?.shega?.length || 0} unique to Shega</p>
-                  <p>{comparison?.body_keywords?.unique_per_site?.addis_insight?.length || 0} unique to Addis</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Headlines Comparison */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Heading1 className="h-5 w-5" />
-              Headline Keywords by Site
-            </CardTitle>
-            <CardDescription>Compare headline keyword usage between sites</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-8 md:grid-cols-2">
+            <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-medium mb-4 flex items-center gap-2">
-                  <Badge className="bg-blue-500">Shega</Badge>
-                </h4>
-                <InteractiveWordCloud 
-                  words={shegaKeywords?.headline_keywords || []} 
-                  palette="shega" 
-                />
+                <p className="text-2xl font-bold">{headlineOverlap?.overlap_percentage?.toFixed(1) || 0}%</p>
+                <p className="text-xs text-muted-foreground">{headlineOverlap?.shared_count || 0} shared keywords</p>
               </div>
-              <div>
-                <h4 className="font-medium mb-4 flex items-center gap-2">
-                  <Badge className="bg-green-500">Addis Insight</Badge>
-                </h4>
-                <InteractiveWordCloud 
-                  words={addisKeywords?.headline_keywords || []} 
-                  palette="addis" 
-                />
+              <div className="text-right text-sm text-muted-foreground">
+                <p>{comparison?.headline_keywords?.unique_per_site?.shega?.length || 0} unique to Shega</p>
+                <p>{comparison?.headline_keywords?.unique_per_site?.addis_insight?.length || 0} unique to Addis</p>
               </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Body Keywords Comparison */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Body Keywords by Site
-            </CardTitle>
-            <CardDescription>Compare body content keyword usage between sites</CardDescription>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Body Keyword Overlap</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-8 md:grid-cols-2">
-              <KeywordList 
-                keywords={shegaKeywords?.body_keywords || []} 
-                title="Shega" 
-                colorClass="bg-blue-500" 
-              />
-              <KeywordList 
-                keywords={addisKeywords?.body_keywords || []} 
-                title="Addis Insight" 
-                colorClass="bg-green-500" 
-              />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold">{bodyOverlap?.overlap_percentage?.toFixed(1) || 0}%</p>
+                <p className="text-xs text-muted-foreground">{bodyOverlap?.shared_count || 0} shared keywords</p>
+              </div>
+              <div className="text-right text-sm text-muted-foreground">
+                <p>{comparison?.body_keywords?.unique_per_site?.shega?.length || 0} unique to Shega</p>
+                <p>{comparison?.body_keywords?.unique_per_site?.addis_insight?.length || 0} unique to Addis</p>
+              </div>
             </div>
           </CardContent>
         </Card>
-      </TabsContent>
-    </Tabs>
+      </div>
+
+      {/* Headlines Comparison */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Heading1 className="h-5 w-5" />
+            Headline Keywords by Site
+          </CardTitle>
+          <CardDescription>Compare headline keyword usage between sites</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-8 md:grid-cols-2">
+            <div>
+              <h4 className="font-medium mb-4 flex items-center gap-2">
+                <Badge className="bg-blue-500">Shega</Badge>
+              </h4>
+              <InteractiveWordCloud 
+                words={shegaKeywords?.headline_keywords || []} 
+                palette="shega" 
+              />
+            </div>
+            <div>
+              <h4 className="font-medium mb-4 flex items-center gap-2">
+                <Badge className="bg-green-500">Addis Insight</Badge>
+              </h4>
+              <InteractiveWordCloud 
+                words={addisKeywords?.headline_keywords || []} 
+                palette="addis" 
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Body Keywords Comparison */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Body Keywords by Site
+          </CardTitle>
+          <CardDescription>Compare body content keyword usage between sites</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-8 md:grid-cols-2">
+            <KeywordList 
+              keywords={shegaKeywords?.body_keywords || []} 
+              title="Shega" 
+              colorClass="bg-blue-500" 
+            />
+            <KeywordList 
+              keywords={addisKeywords?.body_keywords || []} 
+              title="Addis Insight" 
+              colorClass="bg-green-500" 
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

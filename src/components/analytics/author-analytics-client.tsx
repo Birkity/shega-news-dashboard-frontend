@@ -15,7 +15,15 @@ interface AuthorAnalyticsClientProps {
 }
 
 export function AuthorAnalyticsClient({ authors, selectedAuthor: initialAuthor, site }: AuthorAnalyticsClientProps) {
-  const [selectedAuthor, setSelectedAuthor] = useState<string | undefined>(initialAuthor);
+  // Validate that initialAuthor exists in the authors list, otherwise select first author
+  const authorExists = initialAuthor && authors.some(a => a.author === initialAuthor);
+  let defaultAuthor: string | undefined;
+  if (authorExists) {
+    defaultAuthor = initialAuthor;
+  } else if (authors.length > 0) {
+    defaultAuthor = authors[0].author;
+  }
+  const [selectedAuthor, setSelectedAuthor] = useState<string | undefined>(defaultAuthor);
 
   // When "all" sites is selected, show message to select a specific site
   if (site === 'all') {

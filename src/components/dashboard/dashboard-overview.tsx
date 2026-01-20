@@ -2,17 +2,13 @@ import Link from 'next/link';
 import { 
   contentAnalyticsAPI, 
   sentimentAnalyticsAPI, 
-  authorAnalyticsAPI, 
-  topicsAnalyticsAPI,
+  authorAnalyticsAPI,
   competitiveAnalysisAPI
 } from '@/lib/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Flame } from 'lucide-react';
 import { KPICard, ComparisonKPICard } from './kpi-card';
 import type { SiteFilter } from './site-selector';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Flame, Users, ExternalLink, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface DashboardOverviewProps {
   readonly site: SiteFilter;
@@ -22,12 +18,11 @@ async function fetchDashboardData(site: SiteFilter) {
   try {
     const siteParam = site === 'all' ? undefined : site;
     
-    const [lengthComparison, sentimentDist, authorsOverview, topicLabels, competitiveSummary] = 
+    const [lengthComparison, sentimentDist, authorsOverview, competitiveSummary] = 
       await Promise.allSettled([
         contentAnalyticsAPI.getLengthComparison(),
         sentimentAnalyticsAPI.getDistribution({ site: siteParam }),
         authorAnalyticsAPI.getOverviewCards({ site: siteParam }),
-        topicsAnalyticsAPI.getLabels({ limit: 10, site: siteParam }),
         competitiveAnalysisAPI.getCompetitiveSummary(),
       ]);
 
@@ -35,7 +30,6 @@ async function fetchDashboardData(site: SiteFilter) {
       lengthComparison: lengthComparison.status === 'fulfilled' ? lengthComparison.value : null,
       sentimentDist: sentimentDist.status === 'fulfilled' ? sentimentDist.value : null,
       authorsOverview: authorsOverview.status === 'fulfilled' ? authorsOverview.value : null,
-      topicLabels: topicLabels.status === 'fulfilled' ? topicLabels.value : null,
       competitiveSummary: competitiveSummary.status === 'fulfilled' ? competitiveSummary.value : null,
     };
   } catch (error) {
@@ -44,91 +38,9 @@ async function fetchDashboardData(site: SiteFilter) {
       lengthComparison: null,
       sentimentDist: null,
       authorsOverview: null,
-      topicLabels: null,
       competitiveSummary: null,
     };
   }
-}
-
-// Simple inline top authors component
-function SimpleTopAuthorsCard({ data, site }: { readonly data: any; readonly site: SiteFilter }) {
-  let authors: any[] = [];
-  if (site === 'all') {
-    const shegaAuthors = (data?.shega?.top_authors || []).map((a: any) => ({ ...a, site: 'shega' }));
-    const addisAuthors = (data?.addis_insight?.top_authors || []).map((a: any) => ({ ...a, site: 'addis_insight' }));
-    authors = [...shegaAuthors, ...addisAuthors].sort((a, b) => b.article_count - a.article_count).slice(0, 10);
-  } else if (site === 'shega') {
-    authors = (data?.shega?.top_authors || []).map((a: any) => ({ ...a, site: 'shega' }));
-  } else {
-    authors = (data?.addis_insight?.top_authors || []).map((a: any) => ({ ...a, site: 'addis_insight' }));
-  }
-
-  if (authors.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Top Authors
-          </CardTitle>
-          <CardDescription>Most prolific writers</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex h-[200px] items-center justify-center text-muted-foreground">
-            No data available
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Top Authors
-          </CardTitle>
-          <Link href="/analytics/authors">
-            <Button variant="ghost" size="sm" className="gap-1 h-8">
-              View All
-              <ArrowRight className="h-3 w-3" />
-            </Button>
-          </Link>
-        </div>
-        <CardDescription>Most prolific writers by article count - click to view articles</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[300px]">
-          <div className="space-y-1">
-            {authors.map((author: any, index: number) => {
-              const siteParam = author.site ? `&site=${author.site}` : '';
-              return (
-                <Link 
-                  key={`${author.author}-${index}`} 
-                  href={`/articles?author=${encodeURIComponent(author.author)}${siteParam}`}
-                  className="flex items-center justify-between rounded-lg border p-2 hover:bg-accent transition-colors group"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-muted-foreground w-6">#{index + 1}</span>
-                    <span className="text-sm font-medium truncate max-w-[150px] group-hover:text-primary">{author.author}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={author.site === 'shega' ? 'default' : 'secondary'} className="text-xs">
-                      {author.site === 'shega' ? 'Shega' : 'Addis'}
-                    </Badge>
-                    <span className="text-sm font-bold">{author.article_count}</span>
-                    <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
-  );
 }
 
 // Simple inline topics component
@@ -250,12 +162,6 @@ export async function DashboardOverview({ site }: DashboardOverviewProps) {
             icon="gauge"
           />
         </div>
-
-        {/* Bottom Row */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <SimpleTopAuthorsCard data={data.authorsOverview} site={site} />
-          <SimpleTopicsCard data={data.topicLabels} site={site} />
-        </div>
       </div>
     );
   }
@@ -297,12 +203,6 @@ export async function DashboardOverview({ site }: DashboardOverviewProps) {
           addisValue={formatDecimal(addisData?.avg_sentiment ? addisData.avg_sentiment * 100 : undefined)}
           icon="gauge"
         />
-      </div>
-
-      {/* Bottom Row */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <SimpleTopAuthorsCard data={data.authorsOverview} site={site} />
-        <SimpleTopicsCard data={data.topicLabels} site={site} />
       </div>
     </div>
   );

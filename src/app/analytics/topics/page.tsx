@@ -246,7 +246,7 @@ interface TopicsPageProps {
 
 export default async function TopicsPage({ searchParams }: TopicsPageProps) {
   const params = await searchParams;
-  const site = (params.site as SiteFilter) || 'all';
+  const site = (params.site as SiteFilter) || 'shega';
 
   return (
     <div className="space-y-6">
@@ -257,7 +257,7 @@ export default async function TopicsPage({ searchParams }: TopicsPageProps) {
             Track topic labels, trends, and distribution over time
           </p>
         </div>
-        <SiteSelector />
+        <SiteSelector showBothOption={false} />
       </div>
 
       <Suspense fallback={<TopicsSkeleton />}>

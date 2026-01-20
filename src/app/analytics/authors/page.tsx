@@ -3,7 +3,7 @@ import { authorAnalyticsAPI } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChartComponent } from '@/components/charts/bar-chart';
-import { User, Users, FileText, TrendingUp } from 'lucide-react';
+import { User, Users, FileText } from 'lucide-react';
 import { SiteSelector, type SiteFilter } from '@/components/dashboard/site-selector';
 import { AuthorAnalyticsClient } from '@/components/analytics/author-analytics-client';
 import type { Site } from '@/types/api';
@@ -55,14 +55,11 @@ async function AuthorsContent({ site, selectedAuthor }: { readonly site: SiteFil
   const avgWordCount = authorsWithStats.length > 0 
     ? authorsWithStats.reduce((sum: number, a: any) => sum + a.avg_word_count, 0) / authorsWithStats.length 
     : 0;
-  const avgPolarity = authorsWithStats.length > 0
-    ? authorsWithStats.reduce((sum: number, a: any) => sum + a.avg_polarity, 0) / authorsWithStats.length
-    : 0;
 
   return (
     <div className="space-y-6">
       {/* Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Authors</CardTitle>
@@ -91,16 +88,6 @@ async function AuthorsContent({ site, selectedAuthor }: { readonly site: SiteFil
           <CardContent>
             <div className="text-2xl font-bold">{Math.round(avgWordCount).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Words per article</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Avg Sentiment</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{avgPolarity > 0 ? '+' : ''}{(avgPolarity * 100).toFixed(0)}%</div>
-            <p className="text-xs text-muted-foreground">Average polarity score</p>
           </CardContent>
         </Card>
       </div>

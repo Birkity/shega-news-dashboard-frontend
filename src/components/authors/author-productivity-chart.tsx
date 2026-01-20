@@ -68,7 +68,7 @@ export function AuthorProductivityChart({ author, site }: AuthorProductivityChar
   const [data, setData] = useState<AuthorProductivity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [days, setDays] = useState<number>(365); // Default to 1 year (max supported)
+  const [days, setDays] = useState<number | null>(null); // null = All Time (no limit)
   const [granularity] = useState<Granularity>('month'); // Fixed to monthly
 
   useEffect(() => {
@@ -76,7 +76,16 @@ export function AuthorProductivityChart({ author, site }: AuthorProductivityChar
       setLoading(true);
       setError(null);
       try {
-        const result = await authorAnalyticsAPI.getProductivity(author, { days, granularity });
+        const siteParam = site === 'all' ? undefined : site;
+        const params: any = { 
+          site: siteParam,
+          granularity 
+        };
+        // Only include days if it's not null (null means all time)
+        if (days !== null) {
+          params.days = days;
+        }
+        const result = await authorAnalyticsAPI.getProductivity(author, params);
         setData(result);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch productivity data');
@@ -86,7 +95,7 @@ export function AuthorProductivityChart({ author, site }: AuthorProductivityChar
     }
 
     fetchProductivity();
-  }, [author, days, granularity]);
+  }, [author, site, days, granularity]);
 
   const formatDate = useCallback((dateStr: string) => {
     const date = new Date(dateStr);
@@ -131,6 +140,8 @@ export function AuthorProductivityChart({ author, site }: AuthorProductivityChar
   }
 
   if (!data || data.timeline.length === 0) {
+    const totalArticles = data?.summary?.total_articles || 0;
+    const timeRange = days === null ? 'all time' : `the last ${days} days`;
     return (
       <Card>
         <CardHeader>
@@ -141,8 +152,17 @@ export function AuthorProductivityChart({ author, site }: AuthorProductivityChar
           <CardDescription>Publishing activity over time for {author}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-            No productivity data available for this author
+          <div className="flex flex-col h-[300px] items-center justify-center text-center">
+            <Calendar className="h-12 w-12 text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">
+              {totalArticles === 0 
+                ? `No articles found for ${author} in ${timeRange}`
+                : 'No productivity data available for the selected period'
+              }
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Try selecting a different time range or author
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -167,15 +187,18 @@ export function AuthorProductivityChart({ author, site }: AuthorProductivityChar
             <CardDescription>Publishing activity over time</CardDescription>
           </div>
           <div className="flex gap-2">
-            <Select value={days.toString()} onValueChange={(v) => setDays(Number.parseInt(v))}>
-              <SelectTrigger className="w-[130px]">
+            <Select value={days?.toString() || 'all'} onValueChange={(v) => setDays(v === 'all' ? null : Number.parseInt(v))}>
+              <SelectTrigger className="w-[160px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="90">3 months</SelectItem>
-                <SelectItem value="180">6 months</SelectItem>
-                <SelectItem value="270">9 months</SelectItem>
-                <SelectItem value="365">1 year</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="90">Last 3 months</SelectItem>
+                <SelectItem value="180">Last 6 months</SelectItem>
+                <SelectItem value="270">Last 9 months</SelectItem>
+                <SelectItem value="365">Last 1 year</SelectItem>
+                <SelectItem value="730">Last 2 years</SelectItem>
+                <SelectItem value="1825">Last 5 years</SelectItem>
               </SelectContent>
             </Select>
           </div>

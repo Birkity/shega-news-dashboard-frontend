@@ -41,7 +41,9 @@ export const endpoints = {
 
   // ============= Sentiment Analytics =============
   sentimentDistribution: '/analytics/sentiment/distribution',
-  sentimentTrends: '/analytics/sentiment/trends',
+  sentimentTimeline: '/analytics/sentiment/timeline',
+  sentimentTopPositive: '/analytics/sentiment/top-positive',
+  sentimentTopNegative: '/analytics/sentiment/top-negative',
 
   // ============= NLP & Entity Analytics =============
   nlpEntitiesPeople: '/analytics/nlp/entities/people',

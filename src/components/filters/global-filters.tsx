@@ -424,8 +424,8 @@ export function DateRangeSelector({ className }: { readonly className?: string }
   };
 
   return (
-    <div className={cn('flex gap-1 p-1 rounded-lg bg-muted', className)}>
-      {DATE_PRESETS.slice(0, 4).map((preset) => (
+    <div className={cn('flex flex-wrap gap-1 p-1 rounded-lg bg-muted', className)}>
+      {DATE_PRESETS.map((preset) => (
         <Button
           key={preset.value}
           variant={dateRange === preset.value ? 'secondary' : 'ghost'}

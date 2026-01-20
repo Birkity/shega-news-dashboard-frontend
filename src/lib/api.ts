@@ -122,9 +122,19 @@ export const sentimentAnalyticsAPI = {
       `${endpoints.sentimentDistribution}${buildQuery(params)}`
     ),
 
-  getTrends: (params: { site?: API.Site; months?: number } = {}) => 
+  getTimeline: (params: { site?: API.Site; months?: number } = {}) => 
     fetchAPI<API.SentimentTrendsResponse>(
-      `${endpoints.sentimentTrends}${buildQuery(params)}`
+      `${endpoints.sentimentTimeline}${buildQuery(params)}`
+    ),
+
+  getTopPositive: (params: { site?: API.Site; limit?: number } = {}) => 
+    fetchAPI<any>(
+      `${endpoints.sentimentTopPositive}${buildQuery(params)}`
+    ),
+
+  getTopNegative: (params: { site?: API.Site; limit?: number } = {}) => 
+    fetchAPI<any>(
+      `${endpoints.sentimentTopNegative}${buildQuery(params)}`
     ),
 };
 

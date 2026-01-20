@@ -11,17 +11,24 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   TrendingUp, Sparkles, Users, ArrowRight, 
   Tag, Calendar, Flame
 } from 'lucide-react';
 
-// Trending Keywords Quick View
-async function TrendingKeywordsPanel() {
+// Trending Keywords by Site
+async function TrendingKeywordsBySitePanel() {
   try {
-    const data = await keywordsAnalyticsAPI.getTrending({ months: 1 });
-    const headlineKeywords = data?.trending_headline_keywords?.slice(0, 8) || [];
-    const bodyKeywords = data?.trending_body_keywords?.slice(0, 8) || [];
+    const [shegaData, addisData] = await Promise.all([
+      keywordsAnalyticsAPI.getTrending({ months: 1, site: 'shega' }),
+      keywordsAnalyticsAPI.getTrending({ months: 1, site: 'addis_insight' })
+    ]);
+    
+    const shegaHeadlineKeywords = shegaData?.trending_headline_keywords?.slice(0, 8) || [];
+    const shegaBodyKeywords = shegaData?.trending_body_keywords?.slice(0, 8) || [];
+    const addisHeadlineKeywords = addisData?.trending_headline_keywords?.slice(0, 8) || [];
+    const addisBodyKeywords = addisData?.trending_body_keywords?.slice(0, 8) || [];
 
     return (
       <Card>
@@ -38,191 +45,119 @@ async function TrendingKeywordsPanel() {
               </Button>
             </Link>
           </div>
-          <CardDescription>Popular keywords in the last month</CardDescription>
+          <CardDescription>Popular keywords by site - last month</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Headlines</p>
-              <div className="flex flex-wrap gap-2">
-                {headlineKeywords.map((kw: { keyword: string; count: number }) => (
-                  <Link 
-                    key={kw.keyword} 
-                    href={`/articles?keyword=${encodeURIComponent(kw.keyword)}`}
-                  >
-                    <Badge 
-                      variant="secondary" 
-                      className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+          <Tabs defaultValue="shega" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-3">
+              <TabsTrigger value="shega" className="text-xs">
+                <span className="h-2 w-2 rounded-full bg-blue-500 mr-2"></span>
+                Shega Media
+              </TabsTrigger>
+              <TabsTrigger value="addis_insight" className="text-xs">
+                <span className="h-2 w-2 rounded-full bg-green-500 mr-2"></span>
+                Addis Insight
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="shega" className="mt-0 space-y-4">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Headlines</p>
+                <div className="flex flex-wrap gap-2">
+                  {shegaHeadlineKeywords.map((kw: { keyword: string; count: number }) => (
+                    <Link 
+                      key={kw.keyword} 
+                      href={`/articles?keyword=${encodeURIComponent(kw.keyword)}&site=shega`}
                     >
-                      {kw.keyword}
-                    </Badge>
-                  </Link>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Articles</p>
-              <div className="flex flex-wrap gap-2">
-                {bodyKeywords.map((kw: { keyword: string; count: number }) => (
-                  <Link 
-                    key={kw.keyword} 
-                    href={`/articles?keyword=${encodeURIComponent(kw.keyword)}`}
-                  >
-                    <Badge 
-                      variant="outline" 
-                      className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                    >
-                      {kw.keyword}
-                    </Badge>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  } catch (error) {
-    console.error('Error fetching trending keywords:', error);
-    return null;
-  }
-}
-
-// Top Topics Quick View
-async function TopTopicsPanel() {
-  try {
-    const data = await topicsAnalyticsAPI.getLabels({ limit: 8 });
-    const topics = data?.labels || [];
-
-    return (
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Flame className="h-4 w-4 text-orange-500" />
-              Top Topics
-            </CardTitle>
-            <Link href="/analytics/topics">
-              <Button variant="ghost" size="sm" className="gap-1 h-8">
-                View All
-                <ArrowRight className="h-3 w-3" />
-              </Button>
-            </Link>
-          </div>
-          <CardDescription>Most covered topics</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[200px]">
-            <div className="space-y-2">
-              {topics.map((topic: { topic_label: string; article_count: number; percentage: number }, index: number) => (
-                <Link 
-                  key={topic.topic_label}
-                  href={`/articles?topic_label=${encodeURIComponent(topic.topic_label)}`}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-accent transition-colors group"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-muted-foreground w-5">
-                      #{index + 1}
-                    </span>
-                    <span className="text-sm font-medium truncate max-w-[180px] group-hover:text-primary">
-                      {topic.topic_label}
-                    </span>
-                  </div>
-                  <Badge variant="outline" className="text-xs shrink-0">
-                    {topic.article_count}
-                  </Badge>
-                </Link>
-              ))}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
-    );
-  } catch (error) {
-    console.error('Error fetching top topics:', error);
-    return null;
-  }
-}
-
-// Top Authors Quick View
-async function TopAuthorsPanel() {
-  try {
-    const data = await authorAnalyticsAPI.getOverviewCards();
-    
-    const shegaAuthors = (data?.shega?.top_authors || []).map((a: any) => ({ ...a, site: 'shega' }));
-    const addisAuthors = (data?.addis_insight?.top_authors || []).map((a: any) => ({ ...a, site: 'addis_insight' }));
-    const allAuthors = [...shegaAuthors, ...addisAuthors]
-      .sort((a, b) => b.article_count - a.article_count)
-      .slice(0, 10);
-
-    return (
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Top Authors
-            </CardTitle>
-            <Link href="/analytics/authors">
-              <Button variant="ghost" size="sm" className="gap-1 h-8">
-                View All
-                <ArrowRight className="h-3 w-3" />
-              </Button>
-            </Link>
-          </div>
-          <CardDescription>Most prolific writers</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[200px]">
-            <div className="space-y-2">
-              {allAuthors.map((author: { author: string; article_count: number; site: string }) => {
-                const siteParam = author.site ? `&site=${author.site}` : '';
-                return (
-                  <Link 
-                    key={`${author.author}-${author.site}`}
-                    href={`/articles?author=${encodeURIComponent(author.author)}${siteParam}`}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-accent transition-colors group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                        {author.author.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-sm font-medium truncate max-w-[120px] group-hover:text-primary">
-                        {author.author}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <Badge 
-                        variant={author.site === 'shega' ? 'default' : 'secondary'} 
-                        className="text-xs"
+                        variant="default" 
+                        className="cursor-pointer hover:bg-blue-700 transition-colors"
                       >
-                        {author.site === 'shega' ? 'S' : 'A'}
+                        {kw.keyword}
                       </Badge>
-                      <span className="text-sm font-bold w-8 text-right">{author.article_count}</span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </ScrollArea>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Articles</p>
+                <div className="flex flex-wrap gap-2">
+                  {shegaBodyKeywords.map((kw: { keyword: string; count: number }) => (
+                    <Link 
+                      key={kw.keyword} 
+                      href={`/articles?keyword=${encodeURIComponent(kw.keyword)}&site=shega`}
+                    >
+                      <Badge 
+                        variant="outline" 
+                        className="cursor-pointer hover:bg-blue-50 hover:border-blue-500 transition-colors"
+                      >
+                        {kw.keyword}
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="addis_insight" className="mt-0 space-y-4">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Headlines</p>
+                <div className="flex flex-wrap gap-2">
+                  {addisHeadlineKeywords.map((kw: { keyword: string; count: number }) => (
+                    <Link 
+                      key={kw.keyword} 
+                      href={`/articles?keyword=${encodeURIComponent(kw.keyword)}&site=addis_insight`}
+                    >
+                      <Badge 
+                        variant="secondary" 
+                        className="cursor-pointer hover:bg-green-600 hover:text-white transition-colors"
+                      >
+                        {kw.keyword}
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Articles</p>
+                <div className="flex flex-wrap gap-2">
+                  {addisBodyKeywords.map((kw: { keyword: string; count: number }) => (
+                    <Link 
+                      key={kw.keyword} 
+                      href={`/articles?keyword=${encodeURIComponent(kw.keyword)}&site=addis_insight`}
+                    >
+                      <Badge 
+                        variant="outline" 
+                        className="cursor-pointer hover:bg-green-50 hover:border-green-500 transition-colors"
+                      >
+                        {kw.keyword}
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     );
   } catch (error) {
-    console.error('Error fetching top authors:', error);
+    console.error('Error fetching trending keywords by site:', error);
     return null;
   }
 }
 
-// Recent Publishing Activity
-async function PublishingActivityPanel() {
+// Recent Publishing Activity by Site
+async function PublishingActivityBySitePanel() {
   try {
     const data = await publishingAnalyticsAPI.getCalendarHeatmap({ months: 1 });
     
-    // Get the last 7 days of data - CalendarHeatmapDay uses 'total' field
+    // Get the last 7 days of data
     const recentDays = data?.heatmap_data?.slice(-7) || [];
-    const totalRecent = recentDays.reduce((sum, day) => sum + day.total, 0);
-    const avgPerDay = totalRecent / 7;
+    
+    // Calculate stats for each site
+    const shegaTotal = recentDays.reduce((sum, day) => sum + day.shega, 0);
+    const addisTotal = recentDays.reduce((sum, day) => sum + day.addis_insight, 0);
+    const shegaAvg = shegaTotal / 7;
+    const addisAvg = addisTotal / 7;
 
     return (
       <Card>
@@ -239,41 +174,79 @@ async function PublishingActivityPanel() {
               </Button>
             </Link>
           </div>
-          <CardDescription>Last 7 days</CardDescription>
+          <CardDescription>Last 7 days by site</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 rounded-lg bg-muted">
-                <p className="text-2xl font-bold">{totalRecent}</p>
-                <p className="text-xs text-muted-foreground">Total Articles</p>
+          <Tabs defaultValue="shega" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="shega">Shega Media</TabsTrigger>
+              <TabsTrigger value="addis_insight">Addis Insight</TabsTrigger>
+            </TabsList>
+            <TabsContent value="shega" className="mt-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-3 rounded-lg bg-blue-50 dark:bg-blue-950">
+                  <p className="text-2xl font-bold text-blue-600">{shegaTotal}</p>
+                  <p className="text-xs text-muted-foreground">Total Articles</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-blue-50 dark:bg-blue-950">
+                  <p className="text-2xl font-bold text-blue-600">{shegaAvg.toFixed(1)}</p>
+                  <p className="text-xs text-muted-foreground">Avg per Day</p>
+                </div>
               </div>
-              <div className="text-center p-3 rounded-lg bg-muted">
-                <p className="text-2xl font-bold">{avgPerDay.toFixed(1)}</p>
-                <p className="text-xs text-muted-foreground">Avg per Day</p>
+              <div className="flex gap-1 justify-center">
+                {recentDays.map((day) => {
+                  const intensity = day.shega > 0 ? Math.min(day.shega / 10, 1) : 0;
+                  return (
+                    <div
+                      key={day.date}
+                      className="w-8 h-8 rounded flex items-center justify-center text-xs font-medium"
+                      style={{
+                        backgroundColor: intensity > 0 
+                          ? `rgba(37, 99, 235, ${0.2 + intensity * 0.8})` 
+                          : 'var(--muted)',
+                        color: intensity > 0.5 ? 'white' : 'inherit',
+                      }}
+                      title={`${day.date}: ${day.shega} articles`}
+                    >
+                      {day.shega}
+                    </div>
+                  );
+                })}
               </div>
-            </div>
-            <div className="flex gap-1 justify-center">
-              {recentDays.map((day) => {
-                const intensity = day.total > 0 ? Math.min(day.total / 10, 1) : 0;
-                return (
-                  <div
-                    key={day.date}
-                    className="w-8 h-8 rounded flex items-center justify-center text-xs font-medium"
-                    style={{
-                      backgroundColor: intensity > 0 
-                        ? `rgba(34, 197, 94, ${0.2 + intensity * 0.8})` 
-                        : 'var(--muted)',
-                      color: intensity > 0.5 ? 'white' : 'inherit',
-                    }}
-                    title={`${day.date}: ${day.total} articles`}
-                  >
-                    {day.total}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+            </TabsContent>
+            <TabsContent value="addis_insight" className="mt-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-3 rounded-lg bg-green-50 dark:bg-green-950">
+                  <p className="text-2xl font-bold text-green-600">{addisTotal}</p>
+                  <p className="text-xs text-muted-foreground">Total Articles</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-green-50 dark:bg-green-950">
+                  <p className="text-2xl font-bold text-green-600">{addisAvg.toFixed(1)}</p>
+                  <p className="text-xs text-muted-foreground">Avg per Day</p>
+                </div>
+              </div>
+              <div className="flex gap-1 justify-center">
+                {recentDays.map((day) => {
+                  const intensity = day.addis_insight > 0 ? Math.min(day.addis_insight / 10, 1) : 0;
+                  return (
+                    <div
+                      key={day.date}
+                      className="w-8 h-8 rounded flex items-center justify-center text-xs font-medium"
+                      style={{
+                        backgroundColor: intensity > 0 
+                          ? `rgba(34, 197, 94, ${0.2 + intensity * 0.8})` 
+                          : 'var(--muted)',
+                        color: intensity > 0.5 ? 'white' : 'inherit',
+                      }}
+                      title={`${day.date}: ${day.addis_insight} articles`}
+                    >
+                      {day.addis_insight}
+                    </div>
+                  );
+                })}
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     );
@@ -345,21 +318,221 @@ function PanelSkeleton() {
   );
 }
 
+// Top Authors by Site (Top 10 per site)
+async function TopAuthorsBySitePanel() {
+  try {
+    const [shegaData, addisData] = await Promise.all([
+      authorAnalyticsAPI.getList({ site: 'shega', sort_by: 'articles' }),
+      authorAnalyticsAPI.getList({ site: 'addis_insight', sort_by: 'articles' })
+    ]);
+    
+    const shegaAuthors = (shegaData?.authors || []).slice(0, 10);
+    const addisAuthors = (addisData?.authors || []).slice(0, 10);
+
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Top Authors by Site
+            </CardTitle>
+            <Link href="/analytics/authors">
+              <Button variant="ghost" size="sm" className="gap-1 h-8">
+                View All
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          </div>
+          <CardDescription>Most prolific writers by publication</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="shega" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-3">
+              <TabsTrigger value="shega" className="text-xs">
+                <span className="h-2 w-2 rounded-full bg-blue-500 mr-2"></span>
+                Shega Media
+              </TabsTrigger>
+              <TabsTrigger value="addis_insight" className="text-xs">
+                <span className="h-2 w-2 rounded-full bg-green-500 mr-2"></span>
+                Addis Insight
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="shega" className="mt-0">
+              <ScrollArea className="h-[360px]">
+                <div className="space-y-2">
+                  {shegaAuthors.map((author: { author: string; article_count: number }, index: number) => (
+                    <Link 
+                      key={author.author}
+                      href={`/articles?author=${encodeURIComponent(author.author)}&site=shega`}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-accent transition-colors group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-500/10 text-blue-700 text-xs font-semibold">
+                          {author.author.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-sm font-medium truncate max-w-[140px] group-hover:text-primary">
+                          {author.author}
+                        </span>
+                      </div>
+                      <Badge variant="default" className="text-xs">
+                        {author.article_count}
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+            <TabsContent value="addis_insight" className="mt-0">
+              <ScrollArea className="h-[360px]">
+                <div className="space-y-2">
+                  {addisAuthors.map((author: { author: string; article_count: number }, index: number) => (
+                    <Link 
+                      key={author.author}
+                      href={`/articles?author=${encodeURIComponent(author.author)}&site=addis_insight`}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-accent transition-colors group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-green-500/10 text-green-700 text-xs font-semibold">
+                          {author.author.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-sm font-medium truncate max-w-[140px] group-hover:text-primary">
+                          {author.author}
+                        </span>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {author.article_count}
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    );
+  } catch (error) {
+    console.error('Error fetching top authors by site:', error);
+    return null;
+  }
+}
+
+// Top Topics by Site (Top 10 per site)
+async function TopTopicsBySitePanel() {
+  try {
+    const [shegaData, addisData] = await Promise.all([
+      topicsAnalyticsAPI.getLabels({ limit: 10, site: 'shega' }),
+      topicsAnalyticsAPI.getLabels({ limit: 10, site: 'addis_insight' })
+    ]);
+    
+    const shegaTopics = shegaData?.labels || [];
+    const addisTopics = addisData?.labels || [];
+
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Flame className="h-4 w-4 text-orange-500" />
+              Top Topics by Site
+            </CardTitle>
+            <Link href="/analytics/topics">
+              <Button variant="ghost" size="sm" className="gap-1 h-8">
+                View All
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          </div>
+          <CardDescription>Most covered topics by publication</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="shega" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-3">
+              <TabsTrigger value="shega" className="text-xs">
+                <span className="h-2 w-2 rounded-full bg-blue-500 mr-2"></span>
+                Shega Media
+              </TabsTrigger>
+              <TabsTrigger value="addis_insight" className="text-xs">
+                <span className="h-2 w-2 rounded-full bg-green-500 mr-2"></span>
+                Addis Insight
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="shega" className="mt-0">
+              <ScrollArea className="h-[200px]">
+                <div className="space-y-2">
+                  {shegaTopics.map((topic: { topic_label: string; article_count: number }, index: number) => (
+                    <Link 
+                      key={topic.topic_label}
+                      href={`/articles?topic_label=${encodeURIComponent(topic.topic_label)}&site=shega`}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-accent transition-colors group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-blue-600 w-5">
+                          #{index + 1}
+                        </span>
+                        <span className="text-sm font-medium truncate max-w-[160px] group-hover:text-primary">
+                          {topic.topic_label}
+                        </span>
+                      </div>
+                      <Badge variant="default" className="text-xs">
+                        {topic.article_count}
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+            <TabsContent value="addis_insight" className="mt-0">
+              <ScrollArea className="h-[200px]">
+                <div className="space-y-2">
+                  {addisTopics.map((topic: { topic_label: string; article_count: number }, index: number) => (
+                    <Link 
+                      key={topic.topic_label}
+                      href={`/articles?topic_label=${encodeURIComponent(topic.topic_label)}&site=addis_insight`}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-accent transition-colors group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-green-600 w-5">
+                          #{index + 1}
+                        </span>
+                        <span className="text-sm font-medium truncate max-w-[160px] group-hover:text-primary">
+                          {topic.topic_label}
+                        </span>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {topic.article_count}
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    );
+  } catch (error) {
+    console.error('Error fetching top topics by site:', error);
+    return null;
+  }
+}
+
 // Main Insights Grid Component
 export function InsightsGrid() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-6 md:grid-cols-2">
       <Suspense fallback={<PanelSkeleton />}>
-        <TrendingKeywordsPanel />
+        <TrendingKeywordsBySitePanel />
       </Suspense>
       <Suspense fallback={<PanelSkeleton />}>
-        <TopTopicsPanel />
+        <PublishingActivityBySitePanel />
       </Suspense>
       <Suspense fallback={<PanelSkeleton />}>
-        <TopAuthorsPanel />
+        <TopAuthorsBySitePanel />
       </Suspense>
       <Suspense fallback={<PanelSkeleton />}>
-        <PublishingActivityPanel />
+        <TopTopicsBySitePanel />
       </Suspense>
     </div>
   );
@@ -370,14 +543,13 @@ export function InsightsRow() {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <Suspense fallback={<PanelSkeleton />}>
-        <TrendingKeywordsPanel />
+        <TrendingKeywordsBySitePanel />
       </Suspense>
       <Suspense fallback={<PanelSkeleton />}>
-        <TopTopicsPanel />
+        <TopTopicsBySitePanel />
       </Suspense>
       <QuickActionsPanel />
     </div>
   );
 }
 
-export { TrendingKeywordsPanel, TopTopicsPanel, TopAuthorsPanel, PublishingActivityPanel };

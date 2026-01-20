@@ -361,59 +361,54 @@ async function ComparisonContent() {
 
       {/* CONTENT TAB */}
       <TabsContent value="content" className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Content Length Distribution</CardTitle>
-              <CardDescription>Word count statistics by site</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-blue-600">Shega</span>
-                    <span>{shegaLength?.count || 0} articles</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-sm">
-                    <div className="p-2 bg-muted rounded text-center">
-                      <p className="text-xs text-muted-foreground">Min</p>
-                      <p className="font-medium">{shegaLength?.min_body_words || 0}</p>
-                    </div>
-                    <div className="p-2 bg-muted rounded text-center">
-                      <p className="text-xs text-muted-foreground">Avg</p>
-                      <p className="font-medium">{shegaLength?.avg_body_words?.toFixed(0) || 0}</p>
-                    </div>
-                    <div className="p-2 bg-muted rounded text-center">
-                      <p className="text-xs text-muted-foreground">Max</p>
-                      <p className="font-medium">{shegaLength?.max_body_words || 0}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-green-600">Addis Insight</span>
-                    <span>{addisLength?.count || 0} articles</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-sm">
-                    <div className="p-2 bg-muted rounded text-center">
-                      <p className="text-xs text-muted-foreground">Min</p>
-                      <p className="font-medium">{addisLength?.min_body_words || 0}</p>
-                    </div>
-                    <div className="p-2 bg-muted rounded text-center">
-                      <p className="text-xs text-muted-foreground">Avg</p>
-                      <p className="font-medium">{addisLength?.avg_body_words?.toFixed(0) || 0}</p>
-                    </div>
-                    <div className="p-2 bg-muted rounded text-center">
-                      <p className="text-xs text-muted-foreground">Max</p>
-                      <p className="font-medium">{addisLength?.max_body_words || 0}</p>
-                    </div>
-                  </div>
-                </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Content Length Comparison
+            </CardTitle>
+            <CardDescription>Word count statistics visualization by site</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BarChartComponent
+              data={[
+                {
+                  metric: 'Min Words',
+                  Shega: shegaLength?.min_body_words || 0,
+                  'Addis Insight': addisLength?.min_body_words || 0,
+                },
+                {
+                  metric: 'Avg Words',
+                  Shega: Math.round(shegaLength?.avg_body_words || 0),
+                  'Addis Insight': Math.round(addisLength?.avg_body_words || 0),
+                },
+                {
+                  metric: 'Max Words',
+                  Shega: shegaLength?.max_body_words || 0,
+                  'Addis Insight': addisLength?.max_body_words || 0,
+                },
+              ]}
+              bars={[
+                { dataKey: 'Shega', color: '#2563eb', name: 'Shega' },
+                { dataKey: 'Addis Insight', color: '#16a34a', name: 'Addis Insight' },
+              ]}
+              xAxisKey="metric"
+              height={300}
+            />
+            <div className="mt-4 grid grid-cols-2 gap-4 text-center">
+              <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                <p className="text-sm text-muted-foreground">Shega Articles</p>
+                <p className="text-2xl font-bold text-blue-600">{shegaLength?.count?.toLocaleString() || 0}</p>
               </div>
-            </CardContent>
-          </Card>
+              <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+                <p className="text-sm text-muted-foreground">Addis Articles</p>
+                <p className="text-2xl font-bold text-green-600">{addisLength?.count?.toLocaleString() || 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
+        <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Competitive Metrics</CardTitle>

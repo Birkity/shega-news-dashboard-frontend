@@ -12,7 +12,6 @@ import {
   MessageSquare,
   TrendingUp,
   Brain,
-  GitCompare,
   Calendar,
   Settings,
   ChevronLeft,
@@ -48,7 +47,6 @@ const navGroups: NavGroup[] = [
     items: [
       { title: 'Dashboard', href: '/', icon: LayoutDashboard, description: 'Key metrics at a glance' },
       { title: 'Articles', href: '/articles', icon: Newspaper, description: 'Browse all articles' },
-      { title: 'Comparison', href: '/comparison', icon: GitCompare, description: 'Site vs site analysis' },
     ],
   },
   {
